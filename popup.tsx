@@ -1,24 +1,28 @@
-import { useState } from "react"
-
+import { useEffect, useState } from "react"
+import { Assistant } from "./assistant"
+import { organizeByCategory } from "./index"
+const assistant = Assistant.getInstance()
 function IndexPopup() {
-  const [data, setData] = useState("")
+  const [input, setInput] = useState("")
+  const [answer, setAnswer] = useState("")
+
+  // useEffect(() => {
+  //   const askAi = async function () {
+  //     const answer = await assistant.generateContent(input)
+  //     setAnswer(answer)
+  //   }
+  //   askAi()
+  // }, [input])
 
   return (
     <div
       style={{
         padding: 16
       }}>
-      <h2>
-        Welcome to your{" "}
-        <a href="https://www.plasmo.com" target="_blank">
-          Plasmo
-        </a>{" "}
-        Extension!
-      </h2>
-      <input onChange={(e) => setData(e.target.value)} value={data} />
-      <a href="https://docs.plasmo.com" target="_blank">
-        View Docs
-      </a>
+        <button onClick={(e)=>organizeByCategory()}>by category</button>
+        <button>by last access</button>
+        <button>by prediction</button>
+      {/* <input onChange={(e) => setInput(e.target.value)} value={input} /> */}
     </div>
   )
 }
