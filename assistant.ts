@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
 import { systemInstruction } from "./system"
-import type { Tab } from "./tabsManager"
+import type { FrequencyTab, LastAccessedTab, Tab } from "./tabsManager"
 
 enum EMethods {
   CATEGORY = "category",
@@ -29,8 +29,16 @@ export class Assistant {
     return Assistant.instance
   }
 
-  public async generateContent(data: Tab[]): Promise<{ output: object }> {
+  public async generateContent(data: Tab[]| LastAccessedTab[]| FrequencyTab[]): Promise<{ output: object }> {
     const result = await this.model.generateContent(JSON.stringify(data))
-    return JSON.parse(result.response.text())
+    return JSON.parse(this.sanitize(result.response.text()))
+  }
+
+  private sanitize(inputString: string){
+    if(inputString.startsWith('```')){
+      return inputString.replace(/^```json/, '').replace(/```$/, '');
+    }else{
+      return inputString
+    }
   }
 }

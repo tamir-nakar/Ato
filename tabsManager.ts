@@ -1,4 +1,3 @@
-
 export interface Tab {
   u: string // URL
   t: string // Title
@@ -36,91 +35,189 @@ export class TabsManager {
     return TabsManager.instance
   }
 
+  async groupTabs(groupInstructions: { [key: string]: string[] }): Promise<void> {
+    // Query all open tabs
+    const allTabs = await chrome.tabs.query({});
+
+    // Collect all tab IDs from the instructions to keep track of which tabs are being grouped
+    const groupedTabIds = new Set<number>();
+
+    // Iterate over the group instructions and create new groups
+    for (const groupName in groupInstructions) {
+      const tabIdsForGroup = groupInstructions[groupName].map((id) => Number(id)); // Convert IDs to numbers for chrome.tabs API
+
+      if (tabIdsForGroup.length > 0) {
+        // Group the tabs and assign them to the current group
+        const groupId = await chrome.tabs.group({ tabIds: tabIdsForGroup });
+        await chrome.tabGroups.update(groupId, { title: groupName }); // Set group title
+
+        // Add grouped tab IDs to the set
+        tabIdsForGroup.forEach((id) => groupedTabIds.add(id));
+      }
+    }
+
+    // Find tabs that are not part of the instructions (ungrouped tabs)
+    const ungroupedTabs = allTabs.filter((tab) => tab.id && !groupedTabIds.has(tab.id));
+
+    // If there are any ungrouped tabs, group them under the "?" group
+    if (ungroupedTabs.length > 0) {
+      const ungroupedTabIds = ungroupedTabs.map((tab) => tab.id!).filter((id) => id !== undefined);
+      const groupId = await chrome.tabs.group({ tabIds: ungroupedTabIds });
+      await chrome.tabGroups.update(groupId, { title: "?" }); // Set group title to "?"
+    }
+  }
+
   // Prepare input for AI by category
   async getTabsByCategory() {
     const tabs = await this.backgroundService.getTabs()
     return tabs
   }
 
-  async groupTabs(groupInstructions: {
-    [key: string]: string[]
-  }): Promise<void> {
-    // Query all open tabs
-
-    // First, remove all existing tab groups
-    // const tabGroups = await chrome.tabGroups.query({});
-    // for (const group of tabGroups) {
-    //     await chrome.tabs.ungroup(group.id); // Remove all tabs from existing groups
-    // }
-
-    const newGroups: { [key: string]: string[] } = {} // To hold newly grouped tabs
-
-    // Iterate over the group instructions and create new groups
-    for (const groupName in groupInstructions) {
-        
-      const tabIdsForGroup = groupInstructions[groupName].map((id) =>
-        Number(id)
-      ) // Convert IDs to numbers for chrome.tabs API
-
-      if (tabIdsForGroup.length > 0) {
-        // Group the tabs and assign them to the current group
-        const groupId = await chrome.tabs.group({ tabIds: tabIdsForGroup })
-        debugger
-        const groupExists = await chrome.tabGroups.get(groupId);
-        await chrome.tabGroups.update(groupId, { title: groupName }) // Set group title
-
-        newGroups[groupName] = tabIdsForGroup.map((id) => id.toString()) // Store the grouped tabs
-      }
-    }
-
-    // Handle tabs that don't fit into any provided group (i.e., "Other")
-
-    // Resolve with the new groupings
-  }
-
   // Prepare input for AI by last accessed
-  async getTabsByLastAccessed(): Promise<{ [timeFrame: string]: string[] }> {
-    const tabs = await this.backgroundService.getTabsLastAccessed()
-    const timeFrameMap: { [timeFrame: string]: string[] } = {
-      "last hour": [],
-      "last day": [],
-      "last week": [],
-      older: []
-    }
-
-    const now = new Date()
-
-    tabs.forEach((tab) => {
-      const lastAccessed = new Date(tab.la)
-      const timeDiff = now.getTime() - lastAccessed.getTime()
-      const hoursDiff = Math.floor(timeDiff / (1000 * 60 * 60))
-
-      if (hoursDiff < 1) {
-        timeFrameMap["last hour"].push(tab.id)
-      } else if (hoursDiff < 24) {
-        timeFrameMap["last day"].push(tab.id)
-      } else if (hoursDiff < 168) {
-        timeFrameMap["last week"].push(tab.id)
-      } else {
-        timeFrameMap["older"].push(tab.id)
-      }
-    })
-
-    return timeFrameMap
+  async getTabsByLastAccessed(): Promise<LastAccessedTab[]> {
+    return this.backgroundService.getTabsLastAccessed()
   }
 
   // Prepare input for AI based on access frequency
-  async getTabsByPrediction(): Promise<string[]> {
-    const tabs = await this.backgroundService.getTabsAccessFrequency()
-    const tabFrequency: { id: string; frequency: number }[] = []
+  async getTabsByPrediction(): Promise<FrequencyTab[]> {
+    return this.backgroundService.getTabsAccessFrequency()
+  }
 
-    tabs.forEach((tab) => {
-      const accessTimes = tab.a.length
-      tabFrequency.push({ id: tab.id, frequency: accessTimes })
+  async ungroupAllTabs(): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Query all existing tab groups
+        const tabGroups = await chrome.tabGroups.query({})
+
+        if (tabGroups.length === 0) {
+          console.log("No tab groups found.")
+          resolve() // No groups to ungroup
+          return
+        }
+
+        // Iterate over all tab groups and ungroup the tabs in each group
+        for (const group of tabGroups) {
+          // Check if the group exists before trying to ungroup
+          const groupExists = await chrome.tabGroups
+            .get(group.id)
+            .catch(() => null)
+
+          if (groupExists) {
+            const tabsInGroup = await chrome.tabs.query({ groupId: group.id })
+
+            if (tabsInGroup.length > 0) {
+              const tabIds = tabsInGroup
+                .map((tab) => tab.id)
+                .filter((id) => id !== undefined) as number[]
+              await chrome.tabs.ungroup(tabIds) // Ungroup the tabs
+            } else {
+              console.log(`No tabs found in group with ID: ${group.id}`)
+            }
+          } else {
+            console.log(`Group with ID: ${group.id} does not exist.`)
+          }
+        }
+
+        resolve() // Resolve after ungrouping all tabs
+      } catch (error) {
+        reject(error)
+      }
     })
+  }
 
-    tabFrequency.sort((a, b) => b.frequency - a.frequency)
+  async reorderAndRenameGroups(): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Query all existing tab groups
+        const tabGroups = await chrome.tabGroups.query({})
 
-    return tabFrequency.map((tab) => tab.id)
+        if (tabGroups.length === 0) {
+          console.log("No tab groups found.")
+          resolve() // No groups to reorder or rename
+          return
+        }
+
+        // List of target groups in alphabetical order and their new names
+        const groupMappings: { [key: string]: string } = {
+          A: "🔥🔥🔥",
+          B: "🔥🔥",
+          C: "🔥",
+          D: "🗑️"
+        }
+        const groupColorsMappings: { [key: string]: chrome.tabGroups.ColorEnum } = {
+          A: 'red',
+          B: 'orange',
+          C: 'yellow',
+          D: 'grey'
+        }
+
+        // Filter out the groups that match our target names (A, B, C, D)
+        const matchedGroups = tabGroups.filter((group) =>
+          Object.keys(groupMappings).includes(group.title || "")
+        )
+
+        // Sort the matched groups by their title (A, B, C, D) based on alphabetical order
+        matchedGroups.sort((a, b) =>
+          (a.title || "").localeCompare(b.title || "")
+        )
+
+        // Reorder the groups by moving them
+        let currentIndex = 0
+        for (const group of matchedGroups) {
+          try {
+            // Move the group to the new index position in the tab strip
+            await chrome.tabGroups.move(group.id, { index: currentIndex })
+            currentIndex++ // Increment index for the next group
+          } catch (error) {
+            console.error(`Failed to move group with ID: ${group.id}`, error)
+          }
+        }
+
+        // Now rename the groups according to the mapping
+        for (const group of matchedGroups) {
+          try {
+            const newTitle = groupMappings[group.title || ""]
+            const newColor = groupColorsMappings[group.title || ""]
+            if (newTitle) {
+              await chrome.tabGroups.update(group.id, { title: newTitle, color: newColor })
+            }
+          } catch (error) {
+            console.error(`Failed to rename group with ID: ${group.id}`, error)
+          }
+        }
+
+        resolve() // Resolve when done
+      } catch (error) {
+        reject(error)
+      }
+    })
+  }
+
+  async toggleGroups(collapse: boolean): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Query all existing tab groups
+        const tabGroups = await chrome.tabGroups.query({})
+
+        if (tabGroups.length === 0) {
+          console.log("No tab groups found.")
+          resolve() // No groups to collapse/expand
+          return
+        }
+
+        // Iterate over all tab groups and collapse/expand based on the parameter
+        for (const group of tabGroups) {
+          try {
+            await chrome.tabGroups.update(group.id, { collapsed: collapse })
+          } catch (error) {
+            console.error(`Failed to update group with ID: ${group.id}`, error)
+          }
+        }
+
+        resolve() // Resolve after updating all groups
+      } catch (error) {
+        reject(error)
+      }
+    })
   }
 }

@@ -54,11 +54,34 @@ class AppBackgroundService implements BackgroundService {
 }
 
 const tabsManager = TabsManager.getInstance(new AppBackgroundService())
+
 export async function organizeByCategory() {
-  console.log("in organizeByCategory")
+  tabsManager.ungroupAllTabs()
   const tabs = await tabsManager.getTabsByCategory()
-  console.log(tabs)
   const res = await assistant.generateContent(tabs)
-  console.log(res)
   tabsManager.groupTabs(res.output)
+}
+
+export async function organizeByLastAccess() {
+  tabsManager.ungroupAllTabs()
+  const tabs = await tabsManager.getTabsByLastAccessed()
+  const res = await assistant.generateContent(tabs)
+  tabsManager.groupTabs(res.output)
+}
+
+export async function organizeByPrediction() {
+  tabsManager.ungroupAllTabs()
+  const tabs = await tabsManager.getTabsByPrediction()
+  const res = await assistant.generateContent(tabs)
+  console.log(res.output)
+  await tabsManager.groupTabs(res.output)
+  tabsManager.reorderAndRenameGroups()
+}
+
+export async function ungroupAllTabs() {
+  tabsManager.ungroupAllTabs()
+}
+
+export async function toggleGroups(collapse: boolean) {
+  tabsManager.toggleGroups(collapse)
 }
