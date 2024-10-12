@@ -20,15 +20,15 @@ ATO offers three intelligent methods to organize your tabs:
 
 1. **By Category**: ATO categorizes your tabs by analyzing the essence of each one, using tab properties to determine its semantic domain and assign it to a category. This helps you quickly find related tabs based on their themes or topics.
 
-    ![Alt text](doc/Category.gif)
+    ![Alt text](https://i.imgur.com/QFfRGnI.gif)
 
 2. **By Last Access**: This method organizes your tabs based on when you last accessed them. ATO groups your tabs into reasonable time frames, allowing you to easily revisit recently used tabs while keeping older ones accessible without cluttering your workspace.
 
-    ![Alt text](doc/access.gif)
+    ![Alt text](https://i.imgur.com/mySYv0s.gif)
 
 3. **By Frequency (Prediction)**: ATO predicts which tabs you are most likely to access next based on your past behavior. By analyzing how often you’ve opened each tab, it sorts them in an order that prioritizes the most frequently accessed tabs, making your browsing experience smoother and more efficient.
 
-    ![Alt text](doc/frequency.gif)
+    ![Alt text](https://i.imgur.com/GxlQTum.gif)
 
 ## License
 
