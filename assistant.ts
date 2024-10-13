@@ -3,26 +3,21 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 import { systemInstruction } from "./system"
 import type { FrequencyTab, LastAccessedTab, Tab } from "./tabsManager"
 
-enum EMethods {
-  CATEGORY = "category",
-  LAST_ACCESSED = "last_accessed",
-  PREDICTION = "prediction"
-}
-
 export class Assistant {
   private static instance: Assistant
   private genAI: GoogleGenerativeAI
   private model: any
 
-  private constructor() {
-    this.genAI = new GoogleGenerativeAI(process.env.PLASMO_PUBLIC_API_KEY)
+  private constructor(){}
+
+  public initModel (apiKey){
+    this.genAI = new GoogleGenerativeAI(apiKey)
     this.model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       systemInstruction
     })
   }
-
-  public static getInstance(): Assistant {
+  public static getInstance(apiKey?: string): Assistant {
     if (!Assistant.instance) {
       Assistant.instance = new Assistant()
     }

@@ -9,17 +9,24 @@ import './global.css';
 
 
 function IndexPopup() {
-  const [input, setInput] = useState("")
-  const [answer, setAnswer] = useState("")
+  const [apiKey, setApiKey] = useState(() => {
+    return localStorage.getItem('api_key') || '';
+  })
   const [tabCollapse, setTabCollapse] = useState(true)
   const [mode, setMode] = useState('manual')
   const [collapse, setCollapse] = useState(true)
-
 
   const options = [
     { label: 'on the fly (auto)', value: 'auto' },
     { label: 'On demand (manual)', value: 'manual' },
   ];
+
+
+  useEffect(() => {
+
+    localStorage.setItem('api_key', apiKey);
+      Assistant.getInstance().initModel(apiKey)
+  }, [apiKey]);
 
   const collapseItems = [
     {
@@ -28,18 +35,11 @@ function IndexPopup() {
       children: (
         <>
           Please insert your <a href='https://aistudio.google.com/app/apikey' target='_blank'>Gen-AI API key</a> to start:
-          <Input placeholder="API KEY" onChange={(e) => setInput(e.target.value)} value={input} style={{ marginTop: '10px', width: '100%' }} />
+          <Input placeholder="API KEY" onChange={(e) => setApiKey(e.target.value)} value={apiKey} style={{ marginTop: '10px', width: '100%' }} />
         </>
       )
     }
   ];
-  // useEffect(() => {
-  //   const askAi = async function () {
-  //     const answer = await assistant.generateContent(input)
-  //     setAnswer(answer)
-  //   }
-  //   askAi()
-  // }, [input])
 
   return (
     <Flex gap="middle" wrap style={containerStyle}>
