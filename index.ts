@@ -59,23 +59,34 @@ export async function organizeByCategory() {
   tabsManager.ungroupAllTabs()
   const tabs = await tabsManager.getTabsByCategory()
   const res = await assistant.generateContent(tabs)
-  tabsManager.groupTabs(res.output)
+  if (res) {
+    tabsManager.groupTabs(res.output)
+  } else {
+    return 'error'
+  }
 }
 
 export async function organizeByLastAccess() {
   tabsManager.ungroupAllTabs()
   const tabs = await tabsManager.getTabsByLastAccessed()
   const res = await assistant.generateContent(tabs)
-  tabsManager.groupTabs(res.output)
+  if (res) {
+    tabsManager.groupTabs(res.output)
+  } else {
+    return 'error'
+  }
 }
 
 export async function organizeByPrediction() {
   tabsManager.ungroupAllTabs()
   const tabs = await tabsManager.getTabsByPrediction()
   const res = await assistant.generateContent(tabs)
-  console.log(res.output)
-  await tabsManager.groupTabs(res.output)
-  tabsManager.reorderAndRenameGroups()
+  if (res) {
+    await tabsManager.groupTabs(res.output)
+    tabsManager.reorderAndRenameGroups()
+  } else {
+    return 'error'
+  }
 }
 
 export async function ungroupAllTabs() {

@@ -7,15 +7,19 @@ export class Assistant {
   private static instance: Assistant
   private genAI: GoogleGenerativeAI
   private model: any
+  private init: boolean = false
 
-  private constructor(){}
+  private constructor() {}
 
-  public initModel (apiKey){
+  public initModel(apiKey) {
     this.genAI = new GoogleGenerativeAI(apiKey)
     this.model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       systemInstruction
     })
+    if (apiKey) {
+      this.init = true
+    }
   }
   public static getInstance(apiKey?: string): Assistant {
     if (!Assistant.instance) {
@@ -24,15 +28,26 @@ export class Assistant {
     return Assistant.instance
   }
 
-  public async generateContent(data: Tab[]| LastAccessedTab[]| FrequencyTab[]): Promise<{ output: object }> {
-    const result = await this.model.generateContent(JSON.stringify(data))
-    return JSON.parse(this.sanitize(result.response.text()))
+  public isKey() {
+    console.log(this.init)
+    return this.init
   }
 
-  private sanitize(inputString: string){
-    if(inputString.startsWith('```')){
-      return inputString.replace(/^```json/, '').replace(/```$/, '');
-    }else{
+  public async generateContent(
+    data: Tab[] | LastAccessedTab[] | FrequencyTab[]
+  ): Promise<{ output: object} | null> {
+    try {
+      const result = await this.model.generateContent(JSON.stringify(data))
+      return JSON.parse(this.sanitize(result.response.text()))
+    } catch (e) {
+      return null
+    }
+  }
+
+  private sanitize(inputString: string) {
+    if (inputString.startsWith("```")) {
+      return inputString.replace(/^```json/, "").replace(/```$/, "")
+    } else {
       return inputString
     }
   }
