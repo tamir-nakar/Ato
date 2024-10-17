@@ -1,13 +1,14 @@
 {
-  "name": "ato",
-  "displayName": "Ato",
-  "version": "0.0.1",
-  "description": "Ai tab orginizer",
+  "name": "ATO",
+  "displayName": "ATO - AI Tab Organizer",
+  "version": "0.0.2",
+  "description": "AI tab organizer",
   "author": "Tamir Nakar",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
-    "package": "plasmo package"
+    "package": "plasmo package",
+    "buildAndPack": "plasmo build && plasmo package"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
