@@ -69,7 +69,7 @@ export async function organizeByCategory() {
 export async function organizeByLastAccess() {
   tabsManager.ungroupAllTabs()
   const tabs = await tabsManager.getTabsByLastAccessed()
-  const res = await assistant.generateContent(tabs)
+  const res = await assistant.generateContent({now: Math.floor(Date.now() / 1000),  tabs})
   if (res) {
     tabsManager.groupTabs(res.output)
   } else {
