@@ -7,6 +7,9 @@ import './global.css';
 import type { TourProps } from 'antd';
 const { Panel } = Collapse;
 const { Header, Content } = Layout;
+import tour1 from "data-base64:~assets/tour1.jpeg"
+import tour2 from "data-base64:~assets/tour2.jpeg"
+import tour3 from "data-base64:~assets/tour3.jpeg"
 
 enum Emethod {
   CATEGORY = 'category',
@@ -24,6 +27,8 @@ function IndexPopup() {
   const [tourOpen, setTourOpen] = useState<boolean>(false);
   const [messageApi, contextHolder] = message.useMessage();
   const settingsRef = useRef(null);
+  const linkRef = useRef(null);
+  const apiKeyRef = useRef(null);
   const options = [
     { label: 'on the fly (auto)', value: 'auto' },
     { label: 'On demand (manual)', value: 'manual' },
@@ -38,26 +43,40 @@ function IndexPopup() {
   };
   const tourSteps: TourProps['steps'] = [
     {
-      title: 'API_KEY is missing or invalid',
-      description: "This extension must have an GenAi appKey to function. Do not worry, it's easy! first open settings below 👇🏻",
-      // cover: (
-      //   <img
-      //     alt="tour.png"
-      //     src="https://user-images.githubusercontent.com/5378891/197385811-55df8480-7ff4-44bd-9d43-a7dade598d70.png"
-      //   />
-      // ),
+      title: 'API_KEY is missing',
+      description: "This extension must have an GenAi app-key to work. Do not worry, it's easy! first open settings below 👇🏻",
       target: () => settingsRef.current,
+      // onNext: () => 
     },
-    // {
-    //   title: 'Save',
-    //   description: 'Save your changes.',
-    //   target: () => ref2.current,
-    // },
-    // {
-    //   title: 'Other Actions',
-    //   description: 'Click to see other actions.',
-    //   target: () => ref3.current,
-    // },
+    {
+      title: 'Click on link',
+      description: 'Click on the "generate api key" link',
+      target: () => linkRef.current,
+    },
+    {
+      title: 'Get Gen-AI key',
+      description: 'Click on the "Get an API key" button and then on the "Create API key" Button on the opened site',
+            cover: (
+
+                <img
+                  alt="tour2.png"
+                  src={tour2}
+                />
+
+      ),
+    },
+    {
+      title: 'Copy The generated key',
+      description: 'Copy and paste down below your AI-Generated key. It will be auto-saved. Congrats! you are ready to go! 🎉',
+            cover: (
+        <img
+          alt="tour3.png"
+          src={tour3}
+        />
+      ),
+      target: () => apiKeyRef.current,
+
+    },
   ];
 
   useEffect(() => {
@@ -74,16 +93,19 @@ function IndexPopup() {
       children: (
         <>
           Please insert your{" "}
-          <a href="https://aistudio.google.com/app/apikey" target="_blank">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" ref={linkRef}>
             Gen-AI API key
           </a>{" "}
           to start:
+          <div ref={apiKeyRef}>
           <Input
             placeholder="API KEY"
             onChange={(e) => setApiKey(e.target.value)}
             value={apiKey}
             style={{ marginTop: "10px", width: "100%" }}
+            
           />
+          </div>
         </>
       )
     }
