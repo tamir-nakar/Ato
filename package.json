@@ -33,6 +33,9 @@
     ],
     "permissions": [
       "tabGroups"
-    ]
+    ],
+    "omnibox": { "keyword": "ato" },
+    "short_name": "Ato"
+
   }
 }

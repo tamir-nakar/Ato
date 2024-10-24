@@ -127,6 +127,53 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true // Indicates that the response is asynchronous
 })
 
+// ======================================
+// omnibox
+// ======================================
+
+chrome.omnibox.onInputStarted.addListener(() => {
+  // Set the initial suggestion/title in the address bar when the omnibox is triggered
+  chrome.omnibox.setDefaultSuggestion({
+    description: "Start typing tab's title or url to switch tab"
+  });
+});
+
+chrome.omnibox.onInputChanged.addListener((text, suggest) => {
+  const suggestions = [];
+
+  for (const [tabId, tabData] of Object.entries(tabDataMap)) {
+    const { u: url, t: title } = tabData;
+
+    // Check if the input matches any part of the URL or title (case-insensitive)
+    if (url.toLowerCase().includes(text.toLowerCase()) || title.toLowerCase().includes(text.toLowerCase())) {
+      const highlightedUrl = highlightMatch(url, text);
+      const highlightedTitle = highlightMatch(title, text);
+
+      const description = `${highlightedTitle} - <url>${highlightedUrl}</url>`;
+      suggestions.push({
+        content: tabId, // Store tabId to switch to
+        description,
+      });
+    }
+  }
+
+  if (suggestions.length) {
+    suggest(suggestions); // Provide suggestions to the omnibox
+  }
+});
+
+// Helper function to bold matching text (case-insensitive)
+function highlightMatch(text: string, match: string): string {
+  const regex = new RegExp(`(${match})`, 'gi'); // Case-insensitive matching with 'i' flag
+  return text.replace(regex, '<match>$1</match>'); // Wrap matched text in <match> tags
+}
+
+chrome.omnibox.onInputEntered.addListener((content) => {
+  const tabId = parseInt(content, 10); // Get tabId from the content
+  if (!isNaN(tabId)) {
+    chrome.tabs.update(tabId, { active: true }); // Switch to the selected tab
+  }
+});
 
 // ======================================
 // Debug
