@@ -80,7 +80,7 @@ export async function organizeByLastAccess() {
 export async function organizeByPrediction() {
   tabsManager.ungroupAllTabs()
   const tabs = await tabsManager.getTabsByPrediction()
-  const res = await assistant.generateContent(tabs)
+  const res = await assistant.generateContent(tabs.map(tab=>({ ...tab, a: tab.a.map(el => getElapsedTime(el))})))
   if (res) {
     await tabsManager.groupTabs(res.output)
     tabsManager.reorderAndRenameGroups()
