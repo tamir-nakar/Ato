@@ -34,9 +34,10 @@ export class Assistant {
   }
 
   public async generateContent(
-    data: Tab[] | {now: number, tabs: LastAccessedTab[]} | FrequencyTab[]
+    data: Tab[] | LastAccessedTab[] | FrequencyTab[]
   ): Promise<{ output: object} | null> {
     try {
+      console.log('AI input:', JSON.stringify(data))
       const result = await this.model.generateContent(JSON.stringify(data))
       return JSON.parse(this.sanitize(result.response.text()))
     } catch (e) {

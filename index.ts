@@ -69,7 +69,7 @@ export async function organizeByCategory() {
 export async function organizeByLastAccess() {
   tabsManager.ungroupAllTabs()
   const tabs = await tabsManager.getTabsByLastAccessed()
-  const res = await assistant.generateContent({now: Math.floor(Date.now() / 1000),  tabs})
+  const res = await assistant.generateContent(tabs.map(tab => ({ ...tab, la: getElapsedTime(tab.la) })))
   if (res) {
     tabsManager.groupTabs(res.output)
   } else {
@@ -95,4 +95,19 @@ export async function ungroupAllTabs() {
 
 export async function toggleGroups(collapse: boolean) {
   tabsManager.toggleGroups(collapse)
+}
+
+function getElapsedTime(timestamp) {
+  const now = getTimestamp()
+  const diffInSeconds = now - timestamp;
+
+  const days = Math.floor(diffInSeconds / (24 * 3600));
+  const hours = Math.floor((diffInSeconds % (24 * 3600)) / 3600);
+  const minutes = Math.floor((diffInSeconds % 3600) / 60);
+
+  return `${days}d${hours}h${minutes}m`;
+}
+
+function getTimestamp() {
+  return Math.floor(Date.now() / 1000) // Current epoch time in seconds
 }

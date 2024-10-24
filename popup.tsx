@@ -5,7 +5,6 @@ import { organizeByCategory, organizeByLastAccess, organizeByPrediction, toggleG
 import { containerStyle, ContentStyle, HeaderStyle } from './popup.style';
 import './global.css';
 import type { TourProps } from 'antd';
-const { Panel } = Collapse;
 const { Header, Content } = Layout;
 import tour1 from "data-base64:~assets/tour1.jpeg"
 import tour2 from "data-base64:~assets/tour2.jpeg"
@@ -113,7 +112,6 @@ function IndexPopup() {
 
   const handleAiCalls = async (method: Emethod) => {
     let isError = null;
-    debugger
     if (checkApiKeyExist()) {
       switch (method) {
         case Emethod.CATEGORY:
