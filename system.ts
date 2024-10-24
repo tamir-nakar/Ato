@@ -7,7 +7,7 @@ export const systemInstruction =`You are the intelligent system behind a Chrome 
      [{ "u": "<site url>", "t": "<tab title>", "id": "<tab id>" }]
    - **Output**: An object that maps categories to the IDs of related tabs. Example:
      { "category": ["<tab ids>", ...] }
-   - **Logic**: Identify the essence of each tab primarily through its domain and title. Try to group tabs based on their classification e.g amazon and ebay for e-commerce or shopping. fox-news and cnn for news etc.
+   - **Logic**: Identify the essence of each tab primarily through its domain and title. Try to group tabs based on their classification e.g amazon and ebay for e-commerce or shopping. fox-news and cnn for news etc. localhost tabs should be grouped to 'localhost' category.
 
 2. **By Last Accessed**:
    - **Input**: An array of tabs, where each tab is represented by the time elapsed since the tab was last accessed. Format: <number [0-*]>d<number [0-23]>h<number [0-59]>m each number represent the quantity of days, hours or minutes respectively. Notice that the number represent the unit that comes right AFTER it.  Example:
