@@ -1,14 +1,39 @@
-import { Button, Collapse, Divider, Flex, Input, Layout, Radio, Tour, message } from "antd";
+import { Button, Collapse, Divider, Flex, Input, Layout, message, Radio, Switch, Tour } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { Assistant } from "./assistant";
+
+
+
+import { sendToBackground } from "@plasmohq/messaging";
+
+
+
 import { organizeByCategory, organizeByLastAccess, organizeByPrediction, toggleGroups, ungroupAllTabs } from "./index";
 import { containerStyle, ContentStyle, HeaderStyle } from './popup.style';
+
+
+
 import './global.css';
+
+
+
 import type { TourProps } from 'antd';
+import tour1 from "data-base64:~assets/tour1.jpeg";
+import tour2 from "data-base64:~assets/tour2.jpeg";
+import tour3 from "data-base64:~assets/tour3.jpeg";
+
+
+
+import type { Message } from "~types";
+
+
+
+
+
 const { Header, Content } = Layout;
-import tour1 from "data-base64:~assets/tour1.jpeg"
-import tour2 from "data-base64:~assets/tour2.jpeg"
-import tour3 from "data-base64:~assets/tour3.jpeg"
+
+
+
+
 
 enum Emethod {
   CATEGORY = 'category',
@@ -17,26 +42,39 @@ enum Emethod {
 }
 
 function IndexPopup() {
-  const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('api_key') || '';
-  })
+  const [apiKey, setApiKey] = useState('');
+  const [method, setMethod] = useState(Emethod.CATEGORY);
+  const [autoMode, setAutoMode] = useState<boolean>(false);
   const [tabCollapse, setTabCollapse] = useState(true)
-  const [mode, setMode] = useState('manual')
-  const [collapse, setCollapse] = useState(true)
   const [tourOpen, setTourOpen] = useState<boolean>(false);
+  const [collapse, setCollapse] = useState(true)
   const [messageApi, contextHolder] = message.useMessage();
   const settingsRef = useRef(null);
   const linkRef = useRef(null);
   const apiKeyRef = useRef(null);
+
   const options = [
-    { label: 'on the fly (auto)', value: 'auto' },
-    { label: 'On demand (manual)', value: 'manual' },
+    { label: 'on the fly (auto)', value: true },
+    { label: 'On demand (manual)', value: false },
+  ];
+  const groupMethodOptions = [
+    { label: 'Category 📚', value: Emethod.CATEGORY },
+    { label: 'Last access 🕓', value: Emethod.LAST_ACCESS },
+    { label: 'Prediction 🧠', value: Emethod.PREDICTION },
   ];
 
-  const errorMessage = () => {
+  const generalErrorMessage = () => {
     messageApi.open({
       type: 'error',
       content: "Oops! It seems we've encountered an issue. The AI might need a break, or your API key could be invalid. Please double-check and try again.",
+      duration: 5,
+    });
+  };
+
+  const errorMessageKeyInvalid = () => {
+    messageApi.open({
+      type: 'error',
+      content: "Oops! Your API key seems invalid 🤔. Please re-check it or provide a new one",
       duration: 5,
     });
   };
@@ -61,7 +99,6 @@ function IndexPopup() {
                   alt="tour2.png"
                   src={tour2}
                 />
-
       ),
     },
     {
@@ -79,12 +116,42 @@ function IndexPopup() {
   ];
 
   useEffect(() => {
+    // Load auto_mode from chrome.storage.local when the component mounts
+    chrome.storage.local.get(['auto_mode'], (result) => {
+      setAutoMode(result.auto_mode ?? false); // Default to false if not found
+    });
 
-    localStorage.setItem('api_key', apiKey);
-      Assistant.getInstance().initModel(apiKey)
+    // Load API key from chrome.storage.local when the component mounts
+    chrome.storage.local.get(['api_key'], (result) => {
+      setApiKey(result.api_key || ''); // Default to an empty string if not found
+    });
+
+    // Load method from chrome.storage.local when the component mounts
+    chrome.storage.local.get(['method'], (result) => {
+      setMethod(result.method || 'category'); // Default to an empty string if not found
+    });
+  }, []);
+  
+  useEffect(() => {
+    // Store auto_mode in chrome.storage.local whenever it changes
+    chrome.storage.local.set({ auto_mode: autoMode });
+  }, [autoMode]);
+
+  useEffect(() => {
+    // Store auto_mode in chrome.storage.local whenever it changes
+    chrome.storage.local.set({ method });
+  }, [method]);
+
+  useEffect(() => {
+    // Store API key in chrome.storage.local whenever it changes
+    chrome.storage.local.set({ api_key: apiKey });
+    //Assistant.getInstance().initModel(apiKey);
+    sendToBackground({
+      name: "initAssistant",
+      body: {api_key: apiKey}
+    })
+
   }, [apiKey]);
-
-
   const collapseItems = [
     {
       key: "1",
@@ -111,12 +178,12 @@ function IndexPopup() {
   ]
 
   const handleAiCalls = async (method: Emethod) => {
-    let isError = null;
-    if (checkApiKeyExist()) {
+    let isError = null
+    if (await checkApiKeyExist()) {
       switch (method) {
         case Emethod.CATEGORY:
           isError = await organizeByCategory()
-          break;
+          break
         case Emethod.LAST_ACCESS:
           isError = await organizeByLastAccess()
           break
@@ -124,42 +191,61 @@ function IndexPopup() {
           isError = await organizeByPrediction()
           break
       }
-      if(isError){
-        errorMessage()
+      if (isError) {
+        generalErrorMessage()
       }
     }
   }
 
-  const checkApiKeyExist = ()=>{
-    if(!Assistant.getInstance().isKey()){
+  const checkApiKeyExist = async () => {
+    const response: Message = await sendToBackground({
+      name: "checkAssistant"
+    })
+
+
+    if (!apiKey) {
       setTourOpen(true)
       return false
+    } else if (!response.content["isInit"]) {
+      errorMessageKeyInvalid()
+      return false
+    } else {
+      return true
     }
-    return true
   }
   return (
     <Flex gap="middle" wrap style={containerStyle}>
  {contextHolder}
-      <Layout>
+      <Layout >
+
         <Header style={HeaderStyle}>
-          <h2 style={{color: '#444444'}}>Ato - Ai Tab Organizer</h2>
+        <h1 style={{ color: '#444444', display: 'block' }}>ATO</h1>
+        <h2 style={{ color: '#444444', display: 'block' }}>- AI Tab Organizer</h2>
         </Header>
         <Content style={ContentStyle}>
-        <Divider style={{color: '#555555'}}>Mode</Divider>
+
+        <Divider style={{color: '#555555'}}>Organize By:</Divider>
+
+
         <Radio.Group
       block
-      options={options}
-      defaultValue="manual"
+      options={groupMethodOptions}
+      defaultValue={Emethod.CATEGORY}
+      value={method}
       optionType="button"
       buttonStyle="solid"
-      style={{width: 350}}
-      onChange={(e)=> setMode(e.target.value)}
+      style={{width: 390}}
+      onChange={(e)=> {setMethod(e.target.value)}}
 
     />
-        <Divider style={{color: '#555555'}}>Organize By:</Divider>
-          <Button type='primary' disabled={mode === 'auto'} onClick={()=>{handleAiCalls(Emethod.CATEGORY)}}> Category 📚</Button>
-          <Button type='primary' disabled={mode === 'auto'} onClick={()=>{handleAiCalls(Emethod.LAST_ACCESS)}}> Last access 🕓</Button>
-          <Button type='primary' disabled={mode === 'auto'} onClick={()=>{handleAiCalls(Emethod.PREDICTION)}}> Prediction 🧠</Button>
+        <Divider style={{color: '#555555'}}>Organize</Divider>
+
+        <Flex vertical={true} gap={'small'}>
+        <Button type="primary" size="large" onClick={()=>{handleAiCalls(method)}}>Organize Now!</Button>
+        <Switch checkedChildren="Auto Organize" unCheckedChildren="Auto Organize" onClick={()=> setAutoMode(!autoMode)} value={autoMode} />
+
+        </Flex>
+
         <Divider style={{color: '#555555'}}>Tab Groups Actions:</Divider>
 
           <Button type='default' onClick={()=>ungroupAllTabs()}>Ungroup All 🗑️</Button>

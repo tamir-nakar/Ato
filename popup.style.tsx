@@ -12,7 +12,8 @@ export const containerStyle: React.CSSProperties = {
     flexDirection: 'row',
     justifyContent: 'center',  // Centers horizontally
     alignItems: 'center',  // Centers vertically
-    height:30
+    height:60,
+    gap: 10
   };
   export const ContentStyle: React.CSSProperties = {
     display: 'flex',
@@ -20,7 +21,6 @@ export const containerStyle: React.CSSProperties = {
     flexWrap: 'wrap',  
     backgroundColor: '#c8d9ed',
     gap: 5,
-    padding: 10,
     paddingBottom:25,
     justifyContent: 'center',  // Centers horizontally
     alignItems: 'center',  // Centers vertically

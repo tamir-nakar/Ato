@@ -14,29 +14,23 @@ export interface FrequencyTab {
   a: string[] // Access timestamps
 }
 
-// BackgroundService interface
-export interface BackgroundService {
-  getTabs(): Promise<Tab[]>
-  getTabsLastAccessed(): Promise<LastAccessedTab[]>
-  getTabsAccessFrequency(): Promise<FrequencyTab[]>
-}
-
 // Singleton class for managing tabs
 export class TabsManager {
   private static instance: TabsManager
 
-  private constructor(private backgroundService: BackgroundService) {}
+  private constructor() {}
 
   // Method to get the singleton instance
-  static getInstance(backgroundService: BackgroundService): TabsManager {
+  static getInstance(): TabsManager {
     if (!TabsManager.instance) {
-      TabsManager.instance = new TabsManager(backgroundService)
+      TabsManager.instance = new TabsManager()
     }
     return TabsManager.instance
   }
 
   async groupTabs(groupInstructions: { [key: string]: string[] }): Promise<void> {
     // Query all open tabs
+
     const allTabs = await chrome.tabs.query({});
 
     // Collect all tab IDs from the instructions to keep track of which tabs are being grouped
@@ -67,28 +61,11 @@ export class TabsManager {
     }
   }
 
-  // Prepare input for AI by category
-  async getTabsByCategory() {
-    const tabs = await this.backgroundService.getTabs()
-    return tabs
-  }
-
-  // Prepare input for AI by last accessed
-  async getTabsByLastAccessed(): Promise<LastAccessedTab[]> {
-    return this.backgroundService.getTabsLastAccessed()
-  }
-
-  // Prepare input for AI based on access frequency
-  async getTabsByPrediction(): Promise<FrequencyTab[]> {
-    return this.backgroundService.getTabsAccessFrequency()
-  }
-
   async ungroupAllTabs(): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         // Query all existing tab groups
         const tabGroups = await chrome.tabGroups.query({})
-
         if (tabGroups.length === 0) {
           console.log("No tab groups found.")
           resolve() // No groups to ungroup

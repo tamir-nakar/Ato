@@ -12,6 +12,7 @@ export class Assistant {
   private constructor() {}
 
   public initModel(apiKey) {
+    console.log('init model with api key:', apiKey)
     this.genAI = new GoogleGenerativeAI(apiKey)
     this.model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
@@ -23,13 +24,13 @@ export class Assistant {
   }
   public static getInstance(apiKey?: string): Assistant {
     if (!Assistant.instance) {
+      console.log('🎉 Generated new instance of Assistant:', String(apiKey).substring(0,3));
       Assistant.instance = new Assistant()
     }
     return Assistant.instance
   }
 
   public isKey() {
-    console.log(this.init)
     return this.init
   }
 

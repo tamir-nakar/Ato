@@ -1,20 +1,20 @@
+import { Assistant } from "~/assistant";
+import { TabsManager } from '~tabsManager';
+import type { ExcludeTabData, TabData, TabDataMap } from '~types';
+import { formatTimestampToLocalTime, getElapsedTime, getTimestamp } from '~utils';
+
+
+
+
+
 const MAX_ACCESS_HISTORY_ALLOWED = 15
-const tabDataMap: TabDataMap = {}
-type ExcludeTabData = {
-  [K in keyof TabData]: boolean;
-};
-// type debugMethod = 'ALL'|''
-interface TabData {
-  u: string // URL
-  t: string // Title
-  la: number // Last accessed epoch time in seconds
-  a: number[] // Access frequency array
-}
+export const tabDataMap: TabDataMap = {}
+export const tabsManager = TabsManager.getInstance()
+export const assistant = Assistant.getInstance()
 
-interface TabDataMap  { [tabId: string]: TabData }
-
+// init background worker. Get all currently open tabs and insert into map
 async function init() {
-  const tabs = await chrome.tabs.query({}) // Get all currently open tabs
+  const tabs = await chrome.tabs.query({})
   tabs.forEach((tab) => {
     const tabInfo: TabData = {
       t: tab.title || "",
@@ -26,11 +26,7 @@ async function init() {
   })
 }
 
-init()
-
-function getTimestamp() {
-  return Math.floor(Date.now() / 1000) // Current epoch time in seconds
-}
+init() // consider iife
 
 async function initById(tabId: number) {
   const tab = await chrome.tabs.get(tabId)
@@ -50,13 +46,25 @@ async function initById(tabId: number) {
 // ======================================
 // EVENTS
 // ======================================
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   console.log("⏰ onUpdate")
   console.log("title:", changeInfo.title, "|", "status:", changeInfo.status, "|", " url:", changeInfo.url)
 
   if (changeInfo.status === "complete") {
+    console.log('update!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     console.log("update status reached 'complete'. Calling 'initById' to reset tab")
     initById(tabId)
+    chrome.storage.local.get(["auto_mode", "method"], (result) => {
+      if (result.auto_mode) {
+        switch (result.method) {
+          case "category":
+            groupByCategory();
+            break;
+          default:
+        }
+      }
+    });
   }
   console.log(convertToDebugObj(tabDataMap))
 })
@@ -73,6 +81,7 @@ chrome.tabs.onCreated.addListener((tab) => {
   tabDataMap[tab.id.toString()] = tabInfo
   console.log("new tab created 🎉", tabInfo)
   console.log(convertToDebugObj(tabDataMap))
+
 })
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -95,37 +104,99 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
     tabDataMap[tabId].a.length = MAX_ACCESS_HISTORY_ALLOWED
     tabDataMap[tabId].a.reverse()
   }
+  chrome.storage.local.get(["auto_mode", "method"], (result) => {
+    if (result.auto_mode) {
+      switch (result.method) {
+          case "access":
+            groupByLastAccess();
+            break;
+            case "prediction":
+              groupByPrediction();
+              break;
+        default:
+      }
+    }
+  });
   console.log(convertToDebugObj(tabDataMap))
 })
 
 // ======================================
-// Listeners (communication with tabsManager consumer)
+// Tab actions
 // ======================================
 
-// Listen for messages from TabsManager
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "getTabs") {
-    const tabs = Object.values(tabDataMap).map(({ u, t, a }, id) => ({
-      u,
-      t,
-      id: Object.keys(tabDataMap)[id]
-    }))
-    sendResponse(tabs)
-  } else if (request.action === "getTabsLastAccessed") {
-    const lastAccessed = Object.entries(tabDataMap).map(([id, tab]) => ({
-      id,
-      la: tab.la
-    }))
-    sendResponse(lastAccessed)
-  } else if (request.action === "getTabsAccessFrequency") {
-    const accessFrequency = Object.entries(tabDataMap).map(([id, tab]) => ({
-      id,
-      a: tab.a
-    }))
-    sendResponse(accessFrequency)
+  export async function groupByCategory(){
+    let isError = false
+    try{
+      tabsManager.ungroupAllTabs()
+      const tabs = Object.values(tabDataMap).map(({ u, t }, id) => ({
+        u,
+        t,
+        id: Object.keys(tabDataMap)[id]
+      }))
+      console.log('Assistant key?: ', assistant.isKey())
+      const aiRes = await assistant.generateContent(tabs)
+      console.log('AI res (group by category)', aiRes)
+      if (aiRes) {
+        tabsManager.groupTabs(aiRes.output)
+      }else{
+        isError = true
+      } 
+    }catch(e){
+      isError = true
+    }
+    return isError;
   }
-  return true // Indicates that the response is asynchronous
-})
+
+  export async function groupByLastAccess() {
+    let isError = false
+    try {
+      tabsManager.ungroupAllTabs()
+      const lastAccessed = Object.entries(tabDataMap).map(([id, tab]) => ({
+        id,
+        la: tab.la
+      }))
+
+      const aiRes = await assistant.generateContent(
+        lastAccessed.map((tab) => ({ ...tab, la: getElapsedTime(tab.la) }))
+      )
+
+      if (aiRes) {
+        tabsManager.groupTabs(aiRes.output)
+      } else {
+        isError = true
+      }
+    } catch (e) {
+      isError = true
+    }
+    return isError
+  }
+
+  export async function groupByPrediction() {
+    let isError = false
+    try {
+      tabsManager.ungroupAllTabs()
+      const accessFrequency = Object.entries(tabDataMap).map(([id, tab]) => ({
+        id,
+        a: tab.a
+      }))
+
+      const aiRes = await assistant.generateContent(
+        accessFrequency.map((tab) => ({
+          ...tab,
+          a: tab.a.map((el) => getElapsedTime(el))
+        }))
+      )
+      if (aiRes) {
+        await tabsManager.groupTabs(aiRes.output)
+        tabsManager.reorderAndRenameGroups()
+      } else {
+        isError = true
+      }
+    } catch (e) {
+      isError = true
+    }
+    return isError
+  }
 
 // ======================================
 // omnibox
@@ -205,8 +276,6 @@ let convertToDebugObj = (
       }
     }
 
-
-
     return deepCopy
   }
 }
@@ -215,27 +284,5 @@ const debugOptionsSets = {
   onlyTitle: {deleteProps: {a: true, la: true, u: true, t:false}},
   titleAndHRDate: {deleteProps: {a: true, la: false, u: true, t:false},dateFunc: (date:any)=>formatTimestampToLocalTime(date)}
 }
-
-function formatTimestampToLocalTime(timestamp: number): string {
-  const date = new Date(timestamp * 1000); // Convert to milliseconds
-
-  const options: Intl.DateTimeFormatOptions = {
-    timeZone: 'Etc/GMT-3', // GMT+3 timezone
-    month: 'short', // 'short' is correct here
-    day: 'numeric', // Numeric day of the month
-    hour: '2-digit', // 2-digit hour
-    minute: '2-digit', // 2-digit minute
-    hour12: false, // Use 24-hour format
-  };
-
-  // Format the date and time
-  const formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
-
-  // Rearrange the output to match "Oct 23, 13:25"
-  const [monthDay, time] = formattedDate.split(', ');
-  return `${monthDay}, ${time}`;
-}
-
-
 
 const defaultOption = debugOptionsSets.titleAndHRDate
