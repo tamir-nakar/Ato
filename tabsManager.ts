@@ -29,21 +29,36 @@ export class TabsManager {
   }
 
   async groupTabs(groupInstructions: { [key: string]: string[] }): Promise<void> {
+    
+    console.log('at group tabs')
     // Query all open tabs
-
-    const allTabs = await chrome.tabs.query({});
+    const allTabs = await chrome.tabs.query({ windowType: "normal"});
+    const existingTabIds = new Set(allTabs.map((tab) => tab.id));
 
     // Collect all tab IDs from the instructions to keep track of which tabs are being grouped
     const groupedTabIds = new Set<number>();
 
     // Iterate over the group instructions and create new groups
     for (const groupName in groupInstructions) {
-      const tabIdsForGroup = groupInstructions[groupName].map((id) => Number(id)); // Convert IDs to numbers for chrome.tabs API
 
+      // take only those that are in allTabs
+      const tabIdsForGroup = groupInstructions[groupName]
+      .map((id) => Number(id))
+      .filter((id) => existingTabIds.has(id));
+
+      if(groupInstructions[groupName].length !== tabIdsForGroup.length){
+        console.log('Found mismatch between AI-group instructions and actual tabs', 'All tabs:', allTabs, 'Group instructions:', tabIdsForGroup, 'Grouping only those which exists')
+      }
       if (tabIdsForGroup.length > 0) {
+        
         // Group the tabs and assign them to the current group
-        const groupId = await chrome.tabs.group({ tabIds: tabIdsForGroup });
-        await chrome.tabGroups.update(groupId, { title: groupName }); // Set group title
+        try{
+          const groupId = await chrome.tabs.group({ tabIds: tabIdsForGroup });
+          await chrome.tabGroups.update(groupId, { title: groupName }); // Set group title
+
+        }catch(e){
+          console.log(e)
+        }
 
         // Add grouped tab IDs to the set
         tabIdsForGroup.forEach((id) => groupedTabIds.add(id));
@@ -64,6 +79,7 @@ export class TabsManager {
   async ungroupAllTabs(): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
+        console.log('At ungroup all tabs')
         // Query all existing tab groups
         const tabGroups = await chrome.tabGroups.query({})
         if (tabGroups.length === 0) {

@@ -38,8 +38,9 @@ export class Assistant {
     data: Tab[] | LastAccessedTab[] | FrequencyTab[]
   ): Promise<{ output: object} | null> {
     try {
-      console.log('AI input:', JSON.stringify(data))
+      // console.log('📝 AI input:', data)
       const result = await this.model.generateContent(JSON.stringify(data))
+      // console.log('🤖 AI res:', JSON.parse(this.sanitize(result.response.text())))
       return JSON.parse(this.sanitize(result.response.text()))
     } catch (e) {
       return null

@@ -3,10 +3,6 @@ import { TabsManager } from '~tabsManager';
 import type { ExcludeTabData, TabData, TabDataMap } from '~types';
 import { formatTimestampToLocalTime, getElapsedTime, getTimestamp } from '~utils';
 
-
-
-
-
 const MAX_ACCESS_HISTORY_ALLOWED = 15
 export const tabDataMap: TabDataMap = {}
 export const tabsManager = TabsManager.getInstance()
@@ -47,12 +43,13 @@ async function initById(tabId: number) {
 // EVENTS
 // ======================================
 
+// UPDATE
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-  console.log("⏰ onUpdate")
-  console.log("title:", changeInfo.title, "|", "status:", changeInfo.status, "|", " url:", changeInfo.url)
+  // console.log("⏰ onUpdate")
+  // console.log("title:", changeInfo.title, "|", "status:", changeInfo.status, "|", " url:", changeInfo.url)
 
   if (changeInfo.status === "complete") {
-    console.log('update!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    // console.log('update!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     console.log("update status reached 'complete'. Calling 'initById' to reset tab")
     initById(tabId)
     chrome.storage.local.get(["auto_mode", "method"], (result) => {
@@ -69,8 +66,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   console.log(convertToDebugObj(tabDataMap))
 })
 
+// CREATE
 chrome.tabs.onCreated.addListener((tab) => {
-  console.log("⏰ onCreated")
+  // console.log("⏰ onCreated")
 
   const tabInfo: TabData = {
     u: tab.url || "",
@@ -84,15 +82,17 @@ chrome.tabs.onCreated.addListener((tab) => {
 
 })
 
+// REMOVE
 chrome.tabs.onRemoved.addListener((tabId) => {
-  console.log("⏰ onRemoved")
+  // console.log("⏰ onRemoved")
   delete tabDataMap[tabId.toString()] // Remove tab from map
   console.log(convertToDebugObj(tabDataMap))
 })
 
+// ACTIVATED(TOUCHED)
 // Add listener to track tab access (every touch)
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  console.log("⏰ onActivated")
+  // console.log("⏰ onActivated")
 
   const tabId = activeInfo?.tabId?.toString()
   if (tabId) {
@@ -127,7 +127,6 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   export async function groupByCategory(){
     let isError = false
     try{
-      tabsManager.ungroupAllTabs()
       const tabs = Object.values(tabDataMap).map(({ u, t }, id) => ({
         u,
         t,
@@ -137,7 +136,8 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
       const aiRes = await assistant.generateContent(tabs)
       console.log('AI res (group by category)', aiRes)
       if (aiRes) {
-        tabsManager.groupTabs(aiRes.output)
+        await tabsManager.ungroupAllTabs()
+        await tabsManager.groupTabs(aiRes.output)
       }else{
         isError = true
       } 
@@ -150,7 +150,6 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   export async function groupByLastAccess() {
     let isError = false
     try {
-      tabsManager.ungroupAllTabs()
       const lastAccessed = Object.entries(tabDataMap).map(([id, tab]) => ({
         id,
         la: tab.la
@@ -161,7 +160,8 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
       )
 
       if (aiRes) {
-        tabsManager.groupTabs(aiRes.output)
+        await tabsManager.ungroupAllTabs()
+        await tabsManager.groupTabs(aiRes.output)
       } else {
         isError = true
       }
@@ -174,7 +174,6 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   export async function groupByPrediction() {
     let isError = false
     try {
-      tabsManager.ungroupAllTabs()
       const accessFrequency = Object.entries(tabDataMap).map(([id, tab]) => ({
         id,
         a: tab.a
@@ -187,8 +186,9 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
         }))
       )
       if (aiRes) {
+        await tabsManager.ungroupAllTabs()
         await tabsManager.groupTabs(aiRes.output)
-        tabsManager.reorderAndRenameGroups()
+        await tabsManager.reorderAndRenameGroups()
       } else {
         isError = true
       }

@@ -7,7 +7,7 @@ export function formatTimestampToLocalTime(timestamp: number): string {
   const date = new Date(timestamp * 1000) // Convert to milliseconds
 
   const options: Intl.DateTimeFormatOptions = {
-    timeZone: "Etc/GMT-3", // GMT+3 timezone
+    timeZone: "Asia/Jerusalem", // Handles DST changes automatically
     month: "short", // 'short' is correct here
     day: "numeric", // Numeric day of the month
     hour: "2-digit", // 2-digit hour
