@@ -1,7 +1,9 @@
 import { Assistant } from "~/assistant";
 import { TabsManager } from '~tabsManager';
-import type { ExcludeTabData, TabData, TabDataMap } from '~types';
+import { Emethod, type ExcludeTabData, type TabData, type TabDataMap } from '~types';
 import { formatTimestampToLocalTime, getElapsedTime, getTimestamp } from '~utils';
+import BuiltInAssistant, { AI_STATUS } from '~/builtInAssistant';
+const assistant2 = BuiltInAssistant.getInstance(false); // Use `true` to keep session
 
 const MAX_ACCESS_HISTORY_ALLOWED = 15
 export const tabDataMap: TabDataMap = {}
@@ -47,7 +49,7 @@ async function initById(tabId: number) {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   // console.log("⏰ onUpdate")
   // console.log("title:", changeInfo.title, "|", "status:", changeInfo.status, "|", " url:", changeInfo.url)
-
+  console.log(`update 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥`)
   if (changeInfo.status === "complete") {
     // console.log('update!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     console.log("update status reached 'complete'. Calling 'initById' to reset tab")
@@ -132,8 +134,11 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
         t,
         id: Object.keys(tabDataMap)[id]
       }))
-      console.log('Assistant key?: ', assistant.isKey())
-      const aiRes = await assistant.generateContent(tabs)
+      const aiRes = await assistant2.generatePrompt(JSON.stringify(tabs), Emethod.CATEGORY);
+      console.log("aiRes", aiRes)
+
+      //const aiRes = await assistant.generateContent(tabs)
+
       console.log('AI res (group by category)', aiRes)
       if (aiRes) {
         await tabsManager.ungroupAllTabs()
@@ -155,9 +160,14 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
         la: tab.la
       }))
 
-      const aiRes = await assistant.generateContent(
-        lastAccessed.map((tab) => ({ ...tab, la: getElapsedTime(tab.la) }))
-      )
+      // const aiRes = await assistant.generateContent(
+      //   lastAccessed.map((tab) => ({ ...tab, la: getElapsedTime(tab.la) }))
+      // )
+      debugger
+      const input = JSON.stringify( lastAccessed.map((tab) => ({ ...tab, la: getElapsedTime(tab.la) })))
+      const aiRes = await assistant2.generatePrompt(input, Emethod.LAST_ACCESS);
+      console.log(aiRes)
+
 
       if (aiRes) {
         await tabsManager.ungroupAllTabs()

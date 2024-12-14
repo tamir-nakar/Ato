@@ -34,8 +34,10 @@
     ],
     "permissions": [
       "tabGroups",
-      "storage"
+      "storage",
+      "aiLanguageModelOriginTrial"
     ],
+    "trial_tokens": ["AhD9qcyD+zhN6MVkxqTfy44kwFoJJNK9fI8uX+PK87VXpSMOM96J+XnIqOoqxTPgSWXD4wXXQIPlbA1mS8s9YQYAAAB4eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vZGhsamFjbWxqYmJpaWhoamZqY2phZWJhamFiZWVkZmciLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElGb3JFeHRlbnNpb24iLCJleHBpcnkiOjE3NjA0ODYzOTl9", "An2A4ZMy3fZrC0nnf6IC6XnnSJiSHQKGwthtQ9Jt2k+trytWCf9fcedMU6ohoSMxhJPWDFZSXiPYdMrLKWYQcgkAAAB4eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vZmlnZWhmbHBscGhiYmFjZmtqaGdqYWJta2JtZGhlZXAiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElGb3JFeHRlbnNpb24iLCJleHBpcnkiOjE3NjA0ODYzOTl9"],
     "omnibox": {
       "keyword": "ato"
     },

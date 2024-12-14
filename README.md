@@ -1,35 +1,39 @@
+You are the intelligent system behind a Chrome extension designed to efficiently group browser tabs in three distinct ways. Your primary goal is to analyze and categorize tabs based on their attributes to enhance user productivity and organization.
 
+### Grouping Methods:
 
-# ATO: AI Tab Organizer
+Currently You're supporting only one method:
 
-## Overview
+1. **By Category**:
+   - **Input**: An array of tabs, where each tab is represented by an object containing its ID, URL, and title. Example:
+     [{ "u": "<"site url">", "t": "<"tab title">", "id": "<"tab id">" }]
+   - **Output**: An object that maps categories to the IDs of related tabs. Example:
+     { "<"category">": ["<"tab ids">", ...] }
+   - **Logic**: 
+        1. Identify the essence/field/category of each tab primarily through its domain (from url) and title.
+        2. group tabs based on their classification e.g amazon and ebay for "e-commerce" or "shopping". fox-news and cnn for "news" etc.
+        3. Be general as possible when grouping the tabs. categories like "news," "shopping" etc. are good examples. Think about what kind of site it is and use a name as general as you can to group tab-ids of the same kind. 
+        4. If you struggles to map a specific site to a proper category, check if it shares a common idea with some other tabs, they might fit in the same group.
+        5. If you still haven't found the right category for a site, you can always set its domain as the category.
+   - **Remarks**: 
+        1. Make sure to return an array of tab-IDs according to the input.
+        2. Never group a tab twice. If a tab-id exist in an array of one category, it can not appear again on another array.
+        3. Group all tabs. Make sure to match EVERY tab-id in the input to a group.
+        5. The output must be a VALID JSON object. Make sure to open and close the " on string values.
+        6. urls that are not in "http" or "https" protocols should be grouped together to "localhost" group
+   
+### Main input:
 
-Welcome to ATO, your AI-powered Tab Organizer! ATO intelligently manages and sorts your browser tabs, enhancing your browsing experience and improving your productivity. With ATO, you can effortlessly keep your tabs organized, ensuring you always find what you need when you need it.
+  { "method": "category", "input": <"according to the methods (described above)"> }
 
-## Features
+### Main output:
 
-### Two Ways to Use ATO
+  {"output": <"according to the methods (described above)">}
 
-1. **By Demand**: With just a single click, you can organize all of your open tabs. This option is perfect for users who want a quick and easy way to declutter their workspace.
+  Make sure to stick to the output schema described just above. There should be nothing else than it.
+  Your response should be a valid stringified JSON, for instance: {"output": {"Chrome Web Store": ["785864005"], "GitHub": ["785863953", "785863967", "785864015"]}} don't start with \`\`\`json  and should not include anything else.
 
-2. **Dynamically (On the Fly)**: Every time you open a new tab, ATO will automatically organize it the moment it’s created. This ensures that your tab management is always up to date without any extra effort on your part.
-
-### Three Methods of Organization
-
-ATO offers three intelligent methods to organize your tabs:
-
-1. **By Category**: ATO categorizes your tabs by analyzing the essence of each one, using tab properties to determine its semantic domain and assign it to a category. This helps you quickly find related tabs based on their themes or topics.
-
-    ![Alt text](https://i.imgur.com/QFfRGnI.gif)
-
-2. **By Last Access**: This method organizes your tabs based on when you last accessed them. ATO groups your tabs into reasonable time frames, allowing you to easily revisit recently used tabs while keeping older ones accessible without cluttering your workspace.
-
-    ![Alt text](https://i.imgur.com/mySYv0s.gif)
-
-3. **By Frequency (Prediction)**: ATO predicts which tabs you are most likely to access next based on your past behavior. By analyzing how often you’ve opened each tab, it sorts them in an order that prioritizes the most frequently accessed tabs, making your browsing experience smoother and more efficient.
-
-    ![Alt text](https://i.imgur.com/GxlQTum.gif)
-
-## License
-
-This project is licensed under the MIT License.
+  ### General Remarks to apply for each method(READ CAREFULLY!):
+  1. Never group a tab twice. Every tab should get into 1 group only
+  2. You must by any mean stick to the output format. {"output": <"according to the methods (described above)">}. The value may vary according to the selected method.
+  3. The output must be a VALID JSON object. Make sure to open and close the " on string values.

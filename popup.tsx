@@ -1,53 +1,23 @@
 import { Button, Collapse, Divider, Flex, Input, Layout, message, Radio, Switch, Tour } from "antd";
 import { useEffect, useRef, useState } from "react";
-
-
-
 import { sendToBackground } from "@plasmohq/messaging";
-
-
-
 import { organizeByCategory, organizeByLastAccess, organizeByPrediction, toggleGroups, ungroupAllTabs } from "./index";
 import { containerStyle, ContentStyle, HeaderStyle } from './popup.style';
-
-
-
 import './global.css';
-
-
-
-import type { TourProps } from 'antd';
-import tour1 from "data-base64:~assets/tour1.jpeg";
-import tour2 from "data-base64:~assets/tour2.jpeg";
-import tour3 from "data-base64:~assets/tour3.jpeg";
-
-
-
-import type { Message } from "~types";
-
-
-
-
-
+// import type { TourProps } from 'antd';
+// import tour1 from "data-base64:~assets/tour1.jpeg";
+// import tour2 from "data-base64:~assets/tour2.jpeg";
+// import tour3 from "data-base64:~assets/tour3.jpeg";
+import { Emethod } from "~/types";
 const { Header, Content } = Layout;
-
-
-
-
-
-enum Emethod {
-  CATEGORY = 'category',
-  LAST_ACCESS = 'access',
-  PREDICTION = 'prediction'
-}
 
 function IndexPopup() {
   const [apiKey, setApiKey] = useState('');
   const [method, setMethod] = useState(Emethod.CATEGORY);
   const [autoMode, setAutoMode] = useState<boolean>(false);
   const [tabCollapse, setTabCollapse] = useState(true)
-  const [tourOpen, setTourOpen] = useState<boolean>(false);
-  const [collapse, setCollapse] = useState(true)
+  // const [tourOpen, setTourOpen] = useState<boolean>(false);
+  // const [collapse, setCollapse] = useState(true)
   const [messageApi, contextHolder] = message.useMessage();
   const settingsRef = useRef(null);
   const linkRef = useRef(null);
@@ -71,49 +41,49 @@ function IndexPopup() {
     });
   };
 
-  const errorMessageKeyInvalid = () => {
-    messageApi.open({
-      type: 'error',
-      content: "Oops! Your API key seems invalid 🤔. Please re-check it or provide a new one",
-      duration: 5,
-    });
-  };
-  const tourSteps: TourProps['steps'] = [
-    {
-      title: 'API_KEY is missing',
-      description: "This extension must have an GenAi app-key to work. Do not worry, it's easy! first open settings below 👇🏻",
-      target: () => settingsRef.current,
-      // onNext: () => 
-    },
-    {
-      title: 'Click on link',
-      description: 'Click on the "generate api key" link',
-      target: () => linkRef.current,
-    },
-    {
-      title: 'Get Gen-AI key',
-      description: 'Click on the "Get an API key" button and then on the "Create API key" Button on the opened site',
-            cover: (
+  // const errorMessageKeyInvalid = () => {
+  //   messageApi.open({
+  //     type: 'error',
+  //     content: "Oops! Your API key seems invalid 🤔. Please re-check it or provide a new one",
+  //     duration: 5,
+  //   });
+  // };
+  // const tourSteps: TourProps['steps'] = [
+  //   {
+  //     title: 'API_KEY is missing',
+  //     description: "This extension must have an GenAi app-key to work. Do not worry, it's easy! first open settings below 👇🏻",
+  //     target: () => settingsRef.current,
+  //     // onNext: () => 
+  //   },
+  //   {
+  //     title: 'Click on link',
+  //     description: 'Click on the "generate api key" link',
+  //     target: () => linkRef.current,
+  //   },
+  //   {
+  //     title: 'Get Gen-AI key',
+  //     description: 'Click on the "Get an API key" button and then on the "Create API key" Button on the opened site',
+  //           cover: (
 
-                <img
-                  alt="tour2.png"
-                  src={tour2}
-                />
-      ),
-    },
-    {
-      title: 'Copy The generated key',
-      description: 'Copy and paste down below your AI-Generated key. It will be auto-saved. Congrats! you are ready to go! 🎉',
-            cover: (
-        <img
-          alt="tour3.png"
-          src={tour3}
-        />
-      ),
-      target: () => apiKeyRef.current,
+  //               <img
+  //                 alt="tour2.png"
+  //                 src={tour2}
+  //               />
+  //     ),
+  //   },
+  //   {
+  //     title: 'Copy The generated key',
+  //     description: 'Copy and paste down below your AI-Generated key. It will be auto-saved. Congrats! you are ready to go! 🎉',
+  //           cover: (
+  //       <img
+  //         alt="tour3.png"
+  //         src={tour3}
+  //       />
+  //     ),
+  //     target: () => apiKeyRef.current,
 
-    },
-  ];
+  //   },
+  // ];
 
   useEffect(() => {
     // Load auto_mode from chrome.storage.local when the component mounts
@@ -152,34 +122,34 @@ function IndexPopup() {
     })
 
   }, [apiKey]);
-  const collapseItems = [
-    {
-      key: "1",
-      label: "Settings...",
-      children: (
-        <>
-          Please insert your{" "}
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" ref={linkRef}>
-            Gen-AI API key
-          </a>{" "}
-          to start:
-          <div ref={apiKeyRef}>
-          <Input
-            placeholder="API KEY"
-            onChange={(e) => setApiKey(e.target.value)}
-            value={apiKey}
-            style={{ marginTop: "10px", width: "100%" }}
+  // const collapseItems = [
+  //   {
+  //     key: "1",
+  //     label: "Settings...",
+  //     children: (
+  //       <>
+  //         Please insert your{" "}
+  //         <a href="https://aistudio.google.com/app/apikey" target="_blank" ref={linkRef}>
+  //           Gen-AI API key
+  //         </a>{" "}
+  //         to start:
+  //         <div ref={apiKeyRef}>
+  //         <Input
+  //           placeholder="API KEY"
+  //           onChange={(e) => setApiKey(e.target.value)}
+  //           value={apiKey}
+  //           style={{ marginTop: "10px", width: "100%" }}
             
-          />
-          </div>
-        </>
-      )
-    }
-  ]
+  //         />
+  //         </div>
+  //       </>
+  //     )
+  //   }
+  // ]
 
   const handleAiCalls = async (method: Emethod) => {
     let isError = null
-    if (await checkApiKeyExist()) {
+    //if (await checkApiKeyExist()) {
       switch (method) {
         case Emethod.CATEGORY:
           isError = await organizeByCategory()
@@ -194,25 +164,25 @@ function IndexPopup() {
       if (isError) {
         generalErrorMessage()
       }
-    }
+    //}
   }
 
-  const checkApiKeyExist = async () => {
-    const response: Message = await sendToBackground({
-      name: "checkAssistant"
-    })
+  // const checkApiKeyExist = async () => {
+  //   const response: Message = await sendToBackground({
+  //     name: "checkAssistant"
+  //   })
 
 
-    if (!apiKey) {
-      setTourOpen(true)
-      return false
-    } else if (!response.content["isInit"]) {
-      errorMessageKeyInvalid()
-      return false
-    } else {
-      return true
-    }
-  }
+  //   if (!apiKey) {
+  //     setTourOpen(true)
+  //     return false
+  //   } else if (!response.content["isInit"]) {
+  //     errorMessageKeyInvalid()
+  //     return false
+  //   } else {
+  //     return true
+  //   }
+  // }
   return (
     <Flex gap="middle" wrap style={containerStyle}>
  {contextHolder}
@@ -252,8 +222,8 @@ function IndexPopup() {
           <Button type='default' onClick={()=>{toggleGroups(tabCollapse); setTabCollapse(!tabCollapse)}}>Toggle Groups 🔄</Button>
           {/* <input onChange={(e) => setInput(e.target.value)} value={input} /> */}
         </Content>
-               <Collapse ref={settingsRef} items={collapseItems} />
-               <Tour open={tourOpen} onClose={() => setTourOpen(false)} steps={tourSteps} />
+               {/* <Collapse ref={settingsRef} items={collapseItems} />
+               <Tour open={tourOpen} onClose={() => setTourOpen(false)} steps={tourSteps} /> */}
               
       </Layout>
       </Flex>
