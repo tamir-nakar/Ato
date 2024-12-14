@@ -18,7 +18,7 @@ export const systemInstruction =`You are the intelligent system behind a Chrome 
       "last 5 minutes": 0d0h5m and less
       "last 30 minutes": from 0d0h5m to 0d0h30m
       "last hour": from 0d0h30m to 0d1h0m
-      "today": from 0d0h0m to 1d0h0m
+      "X hours ago": from 0d1h1m to 0d23h0m
       "yesterday": from 1d0h0m to 2d0h0m
       "X days ago": from Xd0h0m to 3d0h0m
       "older than X days ": Xd0h0m and more. - only when X >= 4

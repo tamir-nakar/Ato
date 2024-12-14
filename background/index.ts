@@ -284,7 +284,8 @@ let convertToDebugObj = (
 
 const debugOptionsSets = {
   onlyTitle: {deleteProps: {a: true, la: true, u: true, t:false}},
-  titleAndHRDate: {deleteProps: {a: true, la: false, u: true, t:false},dateFunc: (date:any)=>formatTimestampToLocalTime(date)}
+  titleAndHRDate: {deleteProps: {a: true, la: false, u: true, t:false},dateFunc: (date:any)=>formatTimestampToLocalTime(date)},
+  onlyTime: {deleteProps: {a: true, la: false, u: true, t:true},dateFunc: (date:any)=>formatTimestampToLocalTime(date)}
 }
 
 const defaultOption = debugOptionsSets.titleAndHRDate
