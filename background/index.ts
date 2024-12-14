@@ -1,3 +1,4 @@
+import { message } from 'antd';
 import { Assistant } from "~/assistant";
 import { TabsManager } from '~tabsManager';
 import type { ExcludeTabData, TabData, TabDataMap } from '~types';
@@ -154,10 +155,11 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
         id,
         la: tab.la
       }))
-
+      console.log('$$$ sent to AI', lastAccessed)
       const aiRes = await assistant.generateContent(
         lastAccessed.map((tab) => ({ ...tab, la: getElapsedTime(tab.la) }))
       )
+      console.log('AI response:', aiRes)
 
       if (aiRes) {
         await tabsManager.ungroupAllTabs()

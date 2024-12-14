@@ -1,3 +1,4 @@
+import { message } from 'antd';
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
 import { systemInstruction } from "./system"
@@ -40,16 +41,20 @@ export class Assistant {
     try {
       // console.log('📝 AI input:', data)
       const result = await this.model.generateContent(JSON.stringify(data))
+      console.log('Raw AI Response:', result.response.text())
       // console.log('🤖 AI res:', JSON.parse(this.sanitize(result.response.text())))
       return JSON.parse(this.sanitize(result.response.text()))
     } catch (e) {
+      console.log('AI Error:', e.message)
       return null
     }
   }
 
   private sanitize(inputString: string) {
     if (inputString.startsWith("```")) {
-      return inputString.replace(/^```json/, "").replace(/```$/, "")
+      const match = inputString.match(/\{[\s\S]*\}/); // Match the part starting with { and ending with }
+      console.log('after Sanitization:', match[0])
+      return match[0]
     } else {
       return inputString
     }
