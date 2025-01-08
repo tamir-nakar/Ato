@@ -1,7 +1,7 @@
 import { message } from 'antd';
 import { Assistant } from "~/assistant";
 import { TabsManager } from '~tabsManager';
-import type { ExcludeTabData, TabData, TabDataMap } from '~types';
+import type { ExcludeTabData, TabData, TabDataMap, TimeRange } from '~types';
 import { formatTimestampToLocalTime, getElapsedTime, getTimestamp } from '~utils';
 
 const MAX_ACCESS_HISTORY_ALLOWED = 15
@@ -95,6 +95,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.tabs.onActivated.addListener((activeInfo) => {
   // console.log("⏰ onActivated")
 
+  console.log('***happend')
   const tabId = activeInfo?.tabId?.toString()
   if (tabId) {
     tabDataMap[tabId].a.push(getTimestamp()) // updating access history
@@ -133,9 +134,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
         t,
         id: Object.keys(tabDataMap)[id]
       }))
-      console.log('Assistant key?: ', assistant.isKey())
       const aiRes = await assistant.generateContent(tabs)
-      console.log('AI res (group by category)', aiRes)
       if (aiRes) {
         await tabsManager.ungroupAllTabs()
         await tabsManager.groupTabs(aiRes.output)
@@ -148,30 +147,100 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
     return isError;
   }
 
-  export async function groupByLastAccess() {
-    let isError = false
+  export async function groupByLastAccess(): Promise<boolean> {
+    let isError = false;
     try {
-      const lastAccessed = Object.entries(tabDataMap).map(([id, tab]) => ({
-        id,
-        la: tab.la
-      }))
-      console.log('$$$ sent to AI', lastAccessed)
-      const aiRes = await assistant.generateContent(
-        lastAccessed.map((tab) => ({ ...tab, la: getElapsedTime(tab.la) }))
-      )
-      console.log('AI response:', aiRes)
+        const lastAccessed = Object.entries(tabDataMap).map(([id, tab]: [string, TabData]) => ({
+            id,
+            la: tab.la
+        }));
 
-      if (aiRes) {
-        await tabsManager.ungroupAllTabs()
-        await tabsManager.groupTabs(aiRes.output)
-      } else {
-        isError = true
-      }
+        console.log('$$$ sent to local implementation', lastAccessed.map(tab => ({ ...tab, la: getElapsedTime(tab.la) })));
+        const localRes = groupByLastAccessLocalImpl(
+            lastAccessed.map(tab => ({ ...tab, la: tab.la }))
+        );
+        console.log('response:', localRes);
+        
+        const transformedRes = Object.fromEntries(
+          Object.entries(localRes).map(([key, tabs]) => [
+              key,
+              tabs.map(tab => tab.id), // Extract only the 'id' field for each tab
+          ])
+      );
+      console.log('localres', transformedRes)
+        if (transformedRes) {
+            await tabsManager.ungroupAllTabs();
+            await tabsManager.groupTabs(transformedRes);
+        } else {
+            isError = true;
+        }
     } catch (e) {
-      isError = true
+        console.error('Error while grouping tabs by last access:', e);
+        isError = true;
     }
-    return isError
+    return isError;
+}
+
+
+type GroupedTabs = {
+  [key: string]: TabData[];
+};
+
+export interface TabData {
+  u: string; // URL
+  t: string; // Title
+  la: number; // Last accessed epoch time in seconds
+  a: number[]; // Access frequency array
+}
+
+type TimeRange = {
+  label: string;
+  min: number;
+  max: number;
+};
+
+
+function groupByLastAccessLocalImpl(lastAccessed: { id: string; la: number }[]): GroupedTabs {
+  const now = Date.now();
+  // Define time ranges in milliseconds
+  const ranges: TimeRange[] = [
+      { label: "last 5 minutes", min: now - 5 * 60 * 1000, max: now },
+      { label: "last 30 minutes", min: now - 30 * 60 * 1000, max: now - 5 * 60 * 1000 },
+      { label: "last hour", min: now - 60 * 60 * 1000, max: now - 30 * 60 * 1000 },
+      { label: "last 6 hours", min: now - 6 * 60 * 60 * 1000, max: now - 60 * 60 * 1000 },
+      { label: "yesterday", min: now - 2 * 24 * 60 * 60 * 1000, max: now - 24 * 60 * 60 * 1000 },
+      { label: "2 days ago", min: now - 3 * 24 * 60 * 60 * 1000, max: now - 2 * 24 * 60 * 60 * 1000 },
+      { label: "older than 2 days", min: -Infinity, max: now - 3 * 24 * 60 * 60 * 1000 }
+  ];
+
+  // Initialize groups
+  const groups: GroupedTabs = {};
+  ranges.forEach(range => (groups[range.label] = []));
+
+  // Place each tab in the correct group
+  lastAccessed.forEach(tab => {
+      const tabLastAccessedMs = tab.la * 1000; // Convert seconds to milliseconds
+      for (const range of ranges) {
+          if (tabLastAccessedMs >= range.min && tabLastAccessedMs < range.max) {
+              groups[range.label].push({ ...tab, u: "", t: "", a: [] }); // Populate with default TabData fields
+              break; // Stop checking ranges once a match is found
+          }
+      }
+  });
+
+  // Filter out empty groups
+  const nonEmptyGroups: GroupedTabs = {};
+  for (const [label, group] of Object.entries(groups)) {
+      if (group.length > 0) {
+          nonEmptyGroups[label] = group;
+      }
   }
+
+  return nonEmptyGroups;
+}
+
+
+
 
   export async function groupByPrediction() {
     let isError = false
@@ -284,7 +353,7 @@ let convertToDebugObj = (
 
 const debugOptionsSets = {
   onlyTitle: {deleteProps: {a: true, la: true, u: true, t:false}},
-  titleAndHRDate: {deleteProps: {a: true, la: false, u: true, t:false},dateFunc: (date:any)=>formatTimestampToLocalTime(date)},
+  titleAndHRDate: {deleteProps: {a: true, la: false, u: true, t:false},dateFunc: (date:any)=>`${date} = ${formatTimestampToLocalTime(date)}`},
   onlyTime: {deleteProps: {a: true, la: false, u: true, t:true},dateFunc: (date:any)=>formatTimestampToLocalTime(date)}
 }
 

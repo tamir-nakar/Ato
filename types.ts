@@ -14,3 +14,9 @@ export interface Message {
   content?: object
   isError?: boolean
 }
+
+export type TimeRange = {
+  label: string;
+  min: number;
+  max: number;
+};

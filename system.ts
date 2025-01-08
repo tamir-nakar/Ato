@@ -15,17 +15,25 @@ export const systemInstruction =`You are the intelligent system behind a Chrome 
    - **Output**: An object that groups tabs by relevant time frames based on when they were last accessed. Output Example:
      { "last hour": ["<tab ids>"], "2 days ago": ["<tab ids>"], "older": ["<tab ids>"], ... }
       Here are some time frames examples that you can use:
-      "last 5 minutes": 0d0h5m and less
-      "last 30 minutes": from 0d0h5m to 0d0h30m
-      "last hour": from 0d0h30m to 0d1h0m
-      "X hours ago": from 0d1h1m to 0d23h0m
-      "yesterday": from 1d0h0m to 2d0h0m
-      "X days ago": from Xd0h0m to 3d0h0m
+      "last 5 minutes": only expressions <= 0d0h5m 
+      "last 30 minutes": 0d0h5m < exp < 0d0h30m
+      "last hour": 0d0h30m < exp < 0d1h0m
+      "X hours ago": 0d1h1m < exp < 0d23h0m
+      "yesterday": 1d0h0m < exp < 2d0h0m
+      "X days ago": Xd0h0m < exp < 3d0h0m
       "older than X days ": Xd0h0m and more. - only when X >= 4
-      Note that these are only examples. You can choose your own timestamps according to the input. For instance "3 hours ago", "13 hours ago" etc.
+      Note that these are only examples. You can choose your own time frames according to the input. For instance "3 hours ago", "13 hours ago" etc.
       Note that if a time expression is eligible in 2 groups, you should choose the earliest group it fits in. e.g. 0d0h3m will go into "last 5 minutes" even though it is eligible for "last 30 minutes" and "today"
       Note that groups starting with "last" (e.g. 'last hour' or 'last 20 minutes') should contain tabs that their time expression is lower or equal to the value. On the other hand, groups ending with "ago" (e.g. '2 days ago'), should include tabs that their time expression is greater or equal to the value.
-   - **Logic**: Each tab should be placed in the appropriate group based on its last accessed time.
+   -  **Logic**:  Each tab's last accessed time should be compared against the following *exclusive* time ranges.  A tab belongs to the *first* range it matches.  No overlaps are permitted.
+      Your response should only include groups with at least one tab.  Each tab must belong to exactly one group.
+      - "last 5 minutes": 0d0h0m to 0d0h5m (inclusive)
+      - "last 30 minutes": 0d0h5m to 0d0h30m (exclusive)
+      - "last hour": 0d0h30m to 0d1h0m (exclusive)
+      - "yesterday": 1d0h0m to 2d0h0m (exclusive)  
+      - "2 days ago": 2d0h0m to 3d0h0m (exclusive)
+      - "older than 2 days": 3d0h0m and greater.
+      before you give the final output. I want to to ran over it and recheck that you've put every time expression into the right group. You must not make any mistake here
 
 3. **By Prediction**:
    - **Input**: An array of tabs, where each tab is represented by its ID and an array of the last access times (maximum of 15 dates represented by the same format from step 2: '<number>d<number>h<number>m). Example:
