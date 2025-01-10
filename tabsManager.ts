@@ -1,3 +1,4 @@
+import { LastAccessedTab } from './tabsManager';
 export interface Tab {
   u: string // URL
   t: string // Title
@@ -33,6 +34,7 @@ export class TabsManager {
     console.log('at group tabs')
     // Query all open tabs
     const allTabs = await chrome.tabs.query({ windowType: "normal"});
+    console.log('allTabs:', allTabs)
     const existingTabIds = new Set(allTabs.map((tab) => tab.id));
 
     // Collect all tab IDs from the instructions to keep track of which tabs are being grouped
@@ -213,4 +215,21 @@ export class TabsManager {
       }
     })
   }
+
+  async getLastAccessedArray(): Promise<{ id: string; la: number }[]> {
+    const tabs = await chrome.tabs.query({});
+    const lastAccessedArray: { id: string; la: number }[] = [];
+
+    for (const tab of tabs) {
+        if (tab.id !== undefined && tab['lastAccessed'] !== undefined) {
+            lastAccessedArray.push({
+                id: tab.id.toString(),
+                la: tab['lastAccessed'],
+            });
+        }
+    }
+    console.log('lastAccessedArray', lastAccessedArray);
+    return lastAccessedArray;
+}
+
 }

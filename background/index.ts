@@ -1,4 +1,3 @@
-import { message } from 'antd';
 import { Assistant } from "~/assistant";
 import { TabsManager } from '~tabsManager';
 import type { ExcludeTabData, TabData, TabDataMap, TimeRange } from '~types';
@@ -11,6 +10,7 @@ export const assistant = Assistant.getInstance()
 
 // init background worker. Get all currently open tabs and insert into map
 async function init() {
+  console.log('tabData init')
   const tabs = await chrome.tabs.query({})
   tabs.forEach((tab) => {
     const tabInfo: TabData = {
@@ -150,16 +150,11 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   export async function groupByLastAccess(): Promise<boolean> {
     let isError = false;
     try {
-        const lastAccessed = Object.entries(tabDataMap).map(([id, tab]: [string, TabData]) => ({
-            id,
-            la: tab.la
-        }));
 
-        console.log('$$$ sent to local implementation', lastAccessed.map(tab => ({ ...tab, la: getElapsedTime(tab.la) })));
-        const localRes = groupByLastAccessLocalImpl(
-            lastAccessed.map(tab => ({ ...tab, la: tab.la }))
-        );
-        console.log('response:', localRes);
+        const lastAccessed = await tabsManager.getLastAccessedArray()
+        console.log('lastAccessed', lastAccessed)
+        const localRes = groupByLastAccessLocalImpl(lastAccessed);
+        console.log('localRes', localRes)
         
         const transformedRes = Object.fromEntries(
           Object.entries(localRes).map(([key, tabs]) => [
@@ -204,22 +199,31 @@ function groupByLastAccessLocalImpl(lastAccessed: { id: string; la: number }[]):
   const now = Date.now();
   // Define time ranges in milliseconds
   const ranges: TimeRange[] = [
-      { label: "last 5 minutes", min: now - 5 * 60 * 1000, max: now },
-      { label: "last 30 minutes", min: now - 30 * 60 * 1000, max: now - 5 * 60 * 1000 },
-      { label: "last hour", min: now - 60 * 60 * 1000, max: now - 30 * 60 * 1000 },
-      { label: "last 6 hours", min: now - 6 * 60 * 60 * 1000, max: now - 60 * 60 * 1000 },
-      { label: "yesterday", min: now - 2 * 24 * 60 * 60 * 1000, max: now - 24 * 60 * 60 * 1000 },
-      { label: "2 days ago", min: now - 3 * 24 * 60 * 60 * 1000, max: now - 2 * 24 * 60 * 60 * 1000 },
-      { label: "older than 2 days", min: -Infinity, max: now - 3 * 24 * 60 * 60 * 1000 }
-  ];
+    { label: "just now", min: now - 60 * 1000, max: now }, // Last accessed within the last minute
+    { label: "last 5 minutes", min: now - 5 * 60 * 1000, max: now - 60 * 1000 }, // Adjusted to exclude "just now"
+    { label: "last 15 minutes", min: now - 15 * 60 * 1000, max: now - 5 * 60 * 1000 },
+    { label: "last 30 minutes", min: now - 30 * 60 * 1000, max: now - 15 * 60 * 1000 },
+    { label: "last 45 minutes", min: now - 45 * 60 * 1000, max: now - 30 * 60 * 1000 },
+    { label: "last hour", min: now - 60 * 60 * 1000, max: now - 45 * 60 * 1000 },
+    { label: "last 2 hours", min: now - 2 * 60 * 60 * 1000, max: now - 60 * 60 * 1000 },
+    { label: "last 3 hours", min: now - 3 * 60 * 60 * 1000, max: now - 2 * 60 * 60 * 1000 },
+    { label: "last 4 hours", min: now - 4 * 60 * 60 * 1000, max: now - 3 * 60 * 60 * 1000 },
+    { label: "last 5 hours", min: now - 5 * 60 * 60 * 1000, max: now - 4 * 60 * 60 * 1000 },
+    { label: "last 6 hours", min: now - 6 * 60 * 60 * 1000, max: now - 5 * 60 * 60 * 1000 },
+    { label: "last 12 hours", min: now - 12 * 60 * 60 * 1000, max: now - 6 * 60 * 60 * 1000 },
+    { label: "yesterday", min: now - 2 * 24 * 60 * 60 * 1000, max: now - 24 * 60 * 60 * 1000 },
+    { label: "2 days ago", min: now - 3 * 24 * 60 * 60 * 1000, max: now - 2 * 24 * 60 * 60 * 1000 },
+    { label: "older than 2 days", min: -Infinity, max: now - 3 * 24 * 60 * 60 * 1000 }
+];
 
   // Initialize groups
+  debugger
   const groups: GroupedTabs = {};
   ranges.forEach(range => (groups[range.label] = []));
 
   // Place each tab in the correct group
   lastAccessed.forEach(tab => {
-      const tabLastAccessedMs = tab.la * 1000; // Convert seconds to milliseconds
+      const tabLastAccessedMs = tab.la; // Convert seconds to milliseconds
       for (const range of ranges) {
           if (tabLastAccessedMs >= range.min && tabLastAccessedMs < range.max) {
               groups[range.label].push({ ...tab, u: "", t: "", a: [] }); // Populate with default TabData fields
