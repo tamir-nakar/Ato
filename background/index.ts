@@ -110,11 +110,11 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
     if (result.auto_mode) {
       switch (result.method) {
           case "access":
-            groupByLastAccess();
+            setTimeout(groupByLastAccess, 500);
             break;
-            case "prediction":
-              groupByPrediction();
-              break;
+          case "prediction":
+            groupByPrediction();
+            break;
         default:
       }
     }
@@ -150,7 +150,6 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   export async function groupByLastAccess(): Promise<boolean> {
     let isError = false;
     try {
-
         const lastAccessed = await tabsManager.getLastAccessedArray()
         console.log('lastAccessed', lastAccessed)
         const localRes = groupByLastAccessLocalImpl(lastAccessed);
@@ -161,12 +160,13 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
               key,
               tabs.map(tab => tab.id), // Extract only the 'id' field for each tab
           ])
-      );
-      console.log('localres', transformedRes)
+        );
+        console.log('localres', transformedRes)
         if (transformedRes) {
             await tabsManager.ungroupAllTabs();
             await tabsManager.groupTabs(transformedRes);
         } else {
+          console.log('errrr')
             isError = true;
         }
     } catch (e) {
@@ -217,7 +217,6 @@ function groupByLastAccessLocalImpl(lastAccessed: { id: string; la: number }[]):
 ];
 
   // Initialize groups
-  debugger
   const groups: GroupedTabs = {};
   ranges.forEach(range => (groups[range.label] = []));
 

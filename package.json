@@ -1,7 +1,7 @@
 {
   "name": "ATO",
   "displayName": "ATO - AI Tab Organizer",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "AI tab organizer",
   "author": "Tamir Nakar",
   "scripts": {
