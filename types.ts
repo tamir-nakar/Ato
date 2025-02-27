@@ -20,3 +20,9 @@ export type TimeRange = {
   min: number;
   max: number;
 };
+
+export type GroupingInstructions = {
+  [label: string]: TabId[]
+}
+
+type TabId = string

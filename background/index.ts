@@ -1,6 +1,6 @@
 import { Assistant } from "~/assistant";
 import { TabsManager } from '~tabsManager';
-import type { ExcludeTabData, TabData, TabDataMap, TimeRange } from '~types';
+import type { ExcludeTabData, TabData, TabDataMap, TimeRange, GroupingInstructions } from '~types';
 import { formatTimestampToLocalTime, getElapsedTime, getTimestamp } from '~utils';
 
 const MAX_ACCESS_HISTORY_ALLOWED = 15
@@ -147,55 +147,44 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
     return isError;
   }
 
+  
   export async function groupByLastAccess(): Promise<boolean> {
-    let isError = false;
+    let isError = false
     try {
-        const lastAccessed = await tabsManager.getLastAccessedArray()
-        console.log('lastAccessed', lastAccessed)
-        const localRes = groupByLastAccessLocalImpl(lastAccessed);
-        console.log('localRes', localRes)
-        
-        const transformedRes = Object.fromEntries(
-          Object.entries(localRes).map(([key, tabs]) => [
-              key,
-              tabs.map(tab => tab.id), // Extract only the 'id' field for each tab
-          ])
-        );
-        console.log('localres', transformedRes)
-        if (transformedRes) {
-            await tabsManager.ungroupAllTabs();
-            await tabsManager.groupTabs(transformedRes);
-        } else {
-          console.log('errrr')
-            isError = true;
-        }
+      const rangesOrder = [
+        "older than 2 days",
+        "2 days ago",
+        "yesterday",
+        "last 12 hours",
+        "last 6 hours",
+        "last 5 hours",
+        "last 4 hours",
+        "last 3 hours",
+        "last 2 hours",
+        "last hour",
+        "last 45 minutes",
+        "last 30 minutes",
+        "last 15 minutes",
+        "last 5 minutes",
+        "just now"
+    ]
+      const lastAccessed = await tabsManager.getLastAccessedArray()
+      const groupingInstructions = groupByLastAccessLocalImpl(lastAccessed)
+
+      if (groupingInstructions) {
+        const closedGroup = await tabsManager.ungroupAllTabs()
+        await tabsManager.groupTabs(groupingInstructions, rangesOrder, closedGroup)
+      } else {
+        isError = true
+      }
     } catch (e) {
-        console.error('Error while grouping tabs by last access:', e);
-        isError = true;
+      console.error("Error while grouping tabs by last access:", e)
+      isError = true
     }
-    return isError;
-}
+    return isError
+  }
 
-
-type GroupedTabs = {
-  [key: string]: TabData[];
-};
-
-export interface TabData {
-  u: string; // URL
-  t: string; // Title
-  la: number; // Last accessed epoch time in seconds
-  a: number[]; // Access frequency array
-}
-
-type TimeRange = {
-  label: string;
-  min: number;
-  max: number;
-};
-
-
-function groupByLastAccessLocalImpl(lastAccessed: { id: string; la: number }[]): GroupedTabs {
+function groupByLastAccessLocalImpl(lastAccessed: { id: string; la: number }[]): GroupingInstructions {
   const now = Date.now();
   // Define time ranges in milliseconds
   const ranges: TimeRange[] = [
@@ -217,33 +206,30 @@ function groupByLastAccessLocalImpl(lastAccessed: { id: string; la: number }[]):
 ];
 
   // Initialize groups
-  const groups: GroupedTabs = {};
-  ranges.forEach(range => (groups[range.label] = []));
+  const instructions: GroupingInstructions = {};
+  ranges.forEach(range => (instructions[range.label] = []));
 
   // Place each tab in the correct group
   lastAccessed.forEach(tab => {
       const tabLastAccessedMs = tab.la; // Convert seconds to milliseconds
       for (const range of ranges) {
           if (tabLastAccessedMs >= range.min && tabLastAccessedMs < range.max) {
-              groups[range.label].push({ ...tab, u: "", t: "", a: [] }); // Populate with default TabData fields
+              instructions[range.label].push(tab.id); // Populate with default TabData fields
               break; // Stop checking ranges once a match is found
           }
       }
   });
 
   // Filter out empty groups
-  const nonEmptyGroups: GroupedTabs = {};
-  for (const [label, group] of Object.entries(groups)) {
-      if (group.length > 0) {
-          nonEmptyGroups[label] = group;
+  const instructionsRes: GroupingInstructions = {};
+  for (const [label, ids] of Object.entries(instructions)) {
+      if (ids.length > 0) {
+          instructionsRes[label] = ids;
       }
   }
 
-  return nonEmptyGroups;
+  return instructionsRes;
 }
-
-
-
 
   export async function groupByPrediction() {
     let isError = false

@@ -1,4 +1,4 @@
-import { LastAccessedTab } from './tabsManager';
+import type { GroupingInstructions } from '~types';
 export interface Tab {
   u: string // URL
   t: string // Title
@@ -29,96 +29,125 @@ export class TabsManager {
     return TabsManager.instance
   }
 
-  async groupTabs(groupInstructions: { [key: string]: string[] }): Promise<void> {
-    
-    console.log('at group tabs')
+  async groupTabs(groupInstructions: GroupingInstructions, order?: string[], closedLabels?: string[]): Promise<void> {
+    console.log("at group tabs");
+  
     // Query all open tabs
-    const allTabs = await chrome.tabs.query({ windowType: "normal"});
-    console.log('allTabs:', allTabs)
+    const allTabs = await chrome.tabs.query({ windowType: "normal" });
+    console.log("allTabs:", allTabs);
     const existingTabIds = new Set(allTabs.map((tab) => tab.id));
-
+  
     // Collect all tab IDs from the instructions to keep track of which tabs are being grouped
     const groupedTabIds = new Set<number>();
-
-    // Iterate over the group instructions and create new groups
-    for (const groupName in groupInstructions) {
-
-      // take only those that are in allTabs
+  
+    // Ensure order consistency by using the order array if provided
+    const groupNamesToCreate = order
+      ? order.filter((name) => name in groupInstructions)
+      : Object.keys(groupInstructions);
+  
+    // Iterate over the ordered group instructions and create new groups
+    for (const groupName of groupNamesToCreate) {
+      // Take only those that are in allTabs
       const tabIdsForGroup = groupInstructions[groupName]
-      .map((id) => Number(id))
-      .filter((id) => existingTabIds.has(id));
-
-      if(groupInstructions[groupName].length !== tabIdsForGroup.length){
-        console.log('Found mismatch between AI-group instructions and actual tabs', 'All tabs:', allTabs, 'Group instructions:', tabIdsForGroup, 'Grouping only those which exists')
+        .map((id) => Number(id))
+        .filter((id) => existingTabIds.has(id));
+  
+      if (groupInstructions[groupName].length !== tabIdsForGroup.length) {
+        console.log(
+          "Found mismatch between AI-group instructions and actual tabs",
+          "All tabs:",
+          allTabs,
+          "Group instructions:",
+          tabIdsForGroup,
+          "Grouping only those which exist"
+        );
       }
+  
       if (tabIdsForGroup.length > 0) {
-        
-        // Group the tabs and assign them to the current group
-        try{
+        try {
+          console.log("groupName", groupName);
+          // Group the tabs and assign them to the current group
           const groupId = await chrome.tabs.group({ tabIds: tabIdsForGroup });
-          await chrome.tabGroups.update(groupId, { title: groupName }); // Set group title
-
-        }catch(e){
-          console.log(e)
+          await chrome.tabGroups.update(groupId, {
+            title: groupName,
+            collapsed: closedLabels?.includes(groupName) || false, // Collapse group if in closedLabels
+          });
+  
+          // Add grouped tab IDs to the set
+          tabIdsForGroup.forEach((id) => groupedTabIds.add(id));
+        } catch (e) {
+          console.log(e);
         }
-
-        // Add grouped tab IDs to the set
-        tabIdsForGroup.forEach((id) => groupedTabIds.add(id));
       }
     }
-
+  
     // Find tabs that are not part of the instructions (ungrouped tabs)
     const ungroupedTabs = allTabs.filter((tab) => tab.id && !groupedTabIds.has(tab.id));
-
+  
     // If there are any ungrouped tabs, group them under the "?" group
     if (ungroupedTabs.length > 0) {
-      const ungroupedTabIds = ungroupedTabs.map((tab) => tab.id!).filter((id) => id !== undefined);
+      const ungroupedTabIds = ungroupedTabs
+        .map((tab) => tab.id!)
+        .filter((id) => id !== undefined);
       const groupId = await chrome.tabs.group({ tabIds: ungroupedTabIds });
-      await chrome.tabGroups.update(groupId, { title: "?" }); // Set group title to "?"
+      await chrome.tabGroups.update(groupId, {
+        title: "?",
+        collapsed: closedLabels?.includes("?") || false, // Collapse "?" group if in closedLabels
+      });
     }
   }
 
-  async ungroupAllTabs(): Promise<void> {
+  
+
+  async ungroupAllTabs(): Promise<string[]> {
     return new Promise(async (resolve, reject) => {
       try {
-        console.log('At ungroup all tabs')
+        console.log('At ungroup all tabs');
         // Query all existing tab groups
-        const tabGroups = await chrome.tabGroups.query({})
+        const tabGroups = await chrome.tabGroups.query({});
         if (tabGroups.length === 0) {
-          console.log("No tab groups found.")
-          resolve() // No groups to ungroup
-          return
+          console.log("No tab groups found.");
+          resolve([]); // No groups to ungroup
+          return;
         }
-
+  
+        const closedGroups: string[] = [];
+  
         // Iterate over all tab groups and ungroup the tabs in each group
         for (const group of tabGroups) {
           // Check if the group exists before trying to ungroup
           const groupExists = await chrome.tabGroups
             .get(group.id)
-            .catch(() => null)
-
+            .catch(() => null);
+  
           if (groupExists) {
-            const tabsInGroup = await chrome.tabs.query({ groupId: group.id })
-
+            const tabsInGroup = await chrome.tabs.query({ groupId: group.id });
+  
             if (tabsInGroup.length > 0) {
               const tabIds = tabsInGroup
                 .map((tab) => tab.id)
-                .filter((id) => id !== undefined) as number[]
-              await chrome.tabs.ungroup(tabIds) // Ungroup the tabs
+                .filter((id) => id !== undefined) as number[];
+              await chrome.tabs.ungroup(tabIds); // Ungroup the tabs
+  
+              // Add the group title to the closedGroups array if it's collapsed
+              if (groupExists.collapsed && groupExists.title) {
+                closedGroups.push(groupExists.title);
+              }
             } else {
-              console.log(`No tabs found in group with ID: ${group.id}`)
+              console.log(`No tabs found in group with ID: ${group.id}`);
             }
           } else {
-            console.log(`Group with ID: ${group.id} does not exist.`)
+            console.log(`Group with ID: ${group.id} does not exist.`);
           }
         }
-
-        resolve() // Resolve after ungrouping all tabs
+  
+        resolve(closedGroups); // Resolve with the list of closed group titles
       } catch (error) {
-        reject(error)
+        reject(error);
       }
-    })
+    });
   }
+  
 
   async reorderAndRenameGroups(): Promise<void> {
     return new Promise(async (resolve, reject) => {
