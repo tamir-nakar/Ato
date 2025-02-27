@@ -65,7 +65,6 @@ export class TabsManager {
   
       if (tabIdsForGroup.length > 0) {
         try {
-          console.log("groupName", groupName);
           // Group the tabs and assign them to the current group
           const groupId = await chrome.tabs.group({ tabIds: tabIdsForGroup });
           await chrome.tabGroups.update(groupId, {

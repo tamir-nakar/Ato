@@ -1,3 +1,5 @@
+import Swal from "sweetalert2";
+import 'sweetalert2/dist/sweetalert2.min.css';
 import { Button, Collapse, Divider, Flex, Input, Layout, message, Radio, Switch, Tour } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { sendToBackground } from "@plasmohq/messaging";
@@ -11,7 +13,6 @@ import tour3 from "data-base64:~assets/tour3.jpeg";
 import type { Message } from "~types";
 import { Footer } from "~node_modules/antd/es/layout/layout";
 import { FooterStyle } from "./popup.style";
-
 
 const { Header, Content } = Layout;
 
@@ -110,6 +111,39 @@ function IndexPopup() {
     chrome.storage.local.get(['method'], (result) => {
       setMethod(result.method || 'category'); // Default to an empty string if not found
     });
+
+    // Show welcome message every time
+    // Check if we should show the rate dialog
+    chrome.storage.local.get(['nextRatePrompt'], async (result) => {
+      const now = new Date().getTime();
+      let nextPrompt = result.nextRatePrompt
+      if(!nextPrompt){
+        nextPrompt = now + (2 * 24 * 60 * 60 * 1000); // Default to 2 days from now if not set
+        chrome.storage.local.set({ nextRatePrompt: nextPrompt });
+      }
+      
+      if (now >= nextPrompt) {
+        const result = await Swal.fire({
+          title: 'Rate Ato! ⭐️⭐️⭐️⭐️⭐️',
+          html: `
+            <p>If you find ATO helpful, please <a href="https://chromewebstore.google.com/detail/ato-ai-tab-organizer/dhljacmljbbiihhjfjcjaebajabeedfg/reviews" target="_blank">rate us 5 stars</a> on the Chrome Web Store!<br> It will help us making it even better!</p>
+          `,
+          showDenyButton: true,
+          confirmButtonText: 'Later..',
+          denyButtonText: `Don't show again`,
+          width: 300,
+          allowOutsideClick: true
+        });
+
+        const twoDaysFromNow = now + (2 * 24 * 60 * 60 * 1000);
+        const yearFromNow = now + (365 * 24 * 60 * 60 * 1000);
+        
+        // Set next prompt time based on user response
+        chrome.storage.local.set({ 
+          nextRatePrompt: result.isDenied ? yearFromNow : twoDaysFromNow 
+        });
+      }
+    });
   }, []);
   
   useEffect(() => {
@@ -156,6 +190,7 @@ function IndexPopup() {
       )
     }
   ]
+
 
   const handleAiCalls = async (method: Emethod) => {
     let isError = null
@@ -220,10 +255,11 @@ function IndexPopup() {
     />
         <Divider style={{color: '#555555'}}>Organize</Divider>
 
+
         <Flex vertical={true} gap={'small'}>
         <Button type="primary" size="large" onClick={()=>{handleAiCalls(method)}}>Organize Now!</Button>
         <Switch checkedChildren="Auto Organize" unCheckedChildren="Auto Organize" onClick={()=> setAutoMode(!autoMode)} value={autoMode} />
-
+        
         </Flex>
 
         <Divider style={{color: '#555555'}}>Tab Groups Actions:</Divider>
