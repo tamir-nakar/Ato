@@ -26,6 +26,11 @@ export const containerStyle: React.CSSProperties = {
     alignItems: 'center',  // Centers vertically
 
   };
-  export const FooterStyle: React.CSSProperties = {
-    backgroundColor: '#4663ac',
-  };
+    export const FooterStyle: React.CSSProperties = {
+      backgroundColor: '#c8d9ed',
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'center',  // Centers horizontally
+      alignItems: 'center',  // Centers vertically
+      height: 5,  // Reduced height
+    };

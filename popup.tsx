@@ -1,39 +1,19 @@
 import { Button, Collapse, Divider, Flex, Input, Layout, message, Radio, Switch, Tour } from "antd";
 import { useEffect, useRef, useState } from "react";
-
-
-
 import { sendToBackground } from "@plasmohq/messaging";
-
-
-
 import { organizeByCategory, organizeByLastAccess, organizeByPrediction, toggleGroups, ungroupAllTabs } from "./index";
 import { containerStyle, ContentStyle, HeaderStyle } from './popup.style';
-
-
-
 import './global.css';
-
-
-
 import type { TourProps } from 'antd';
 import tour1 from "data-base64:~assets/tour1.jpeg";
 import tour2 from "data-base64:~assets/tour2.jpeg";
 import tour3 from "data-base64:~assets/tour3.jpeg";
-
-
-
 import type { Message } from "~types";
-
-
-
+import { Footer } from "~node_modules/antd/es/layout/layout";
+import { FooterStyle } from "./popup.style";
 
 
 const { Header, Content } = Layout;
-
-
-
-
 
 enum Emethod {
   CATEGORY = 'category',
@@ -254,7 +234,9 @@ function IndexPopup() {
         </Content>
                <Collapse ref={settingsRef} items={collapseItems} />
                <Tour open={tourOpen} onClose={() => setTourOpen(false)} steps={tourSteps} />
-              
+        <Footer style={FooterStyle}>
+          <p>Made with love by theCart  <a href="https://buymeacoffee.com/thecart" target="_blank">buy me a coffee ☕️ </a></p>
+        </Footer>
       </Layout>
       </Flex>
   )
