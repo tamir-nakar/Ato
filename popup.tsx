@@ -13,6 +13,7 @@ import tour3 from "data-base64:~assets/tour3.jpeg";
 import type { Message } from "~types";
 import { Footer } from "~node_modules/antd/es/layout/layout";
 import { FooterStyle } from "./popup.style";
+import { getCurrentVersion, getSemverValue } from './utils';
 
 const { Header, Content } = Layout;
 
@@ -112,7 +113,32 @@ function IndexPopup() {
       setMethod(result.method || 'category'); // Default to an empty string if not found
     });
 
-    // Show welcome message every time
+    // Check for What's New alert
+    chrome.storage.local.get(['lastSeenVersion'], async (result) => {
+      const currentVersion = getCurrentVersion();
+      const lastSeenVersion = result.lastSeenVersion;
+      const showWhatsNew = true
+      if ((!lastSeenVersion || getSemverValue(lastSeenVersion) < getSemverValue(currentVersion)) && showWhatsNew) {
+        const result = await Swal.fire({
+          title: "What's New? 🎉",
+          html: `
+            <p>Version ${currentVersion}:</p>
+            <ul style="text-align: left; margin-top: 10px;">
+              <li><u>Last access </u> groups are now ordered nicely ("just now" always first)</li>
+              <li>Bug fixes and UI enhancements</li>
+              <li>If you're enjoying ATO, please <a href="https://chromewebstore.google.com/detail/ato-ai-tab-organizer/dhljacmljbbiihhjfjcjaebajabeedfg/reviews" target="_blank">rate us 5 stars</a> on the Chrome Web Store!<br> It will help us making it even better!</li>
+            </ul>
+          `,
+          confirmButtonText: 'Got it!',
+          width: 350,
+          allowOutsideClick: true
+        });
+
+        // Update the last seen version
+        chrome.storage.local.set({ lastSeenVersion: currentVersion });
+      }
+    });
+
     // Check if we should show the rate dialog
     chrome.storage.local.get(['nextRatePrompt'], async (result) => {
       const now = new Date().getTime();

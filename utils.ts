@@ -32,4 +32,19 @@ export function getElapsedTime(timestamp) {
     const minutes = Math.floor((diffInSeconds % 3600) / 60)
   
     return `${days}d${hours}h${minutes}m`
-  }
+}
+
+// Get the current version from manifest
+export function getCurrentVersion(): string {
+  const ver =  chrome.runtime.getManifest().version;
+  console.log(ver)
+  return ver;
+}
+
+// Convert semver string to a single numeric value for comparison
+// e.g. "1.2.3" -> 10230 (100*1 + 10*2 + 3)
+export function getSemverValue(version: string): number {
+  const [major = 0, minor = 0, patch = 0] = version.split('.').map(Number);
+  return (major * 100) + (minor * 10) + patch;
+}
+
